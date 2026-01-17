@@ -7,11 +7,10 @@ from setuptools import setup, find_packages
 setup(
     name='verse-lexer',
     version='1.0.0',
-    packages=['libs.pygments.lexers'],
-    package_dir={'': '.'},
+    packages=['verse_lexer'],
     entry_points={
         'pygments.lexers': [
-            'verse = libs.pygments.lexers.verse:VerseLexer',
+            'verse = verse_lexer:VerseLexer',
         ],
     },
     install_requires=[

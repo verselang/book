@@ -1,15 +1,15 @@
-site_name: Book of Verse 
-site_url: https://pages.github.ol.epicgames.net/verse/VerseBook
+site_name: Book of Verse
+site_url: https://verselang.github.io/book/
 site_description: Documentation for the Verse programming language
 site_author: Jan Vitek
 
-repo_name: verse/VerseBook
-repo_url: https://github.ol.epicgames.net/verse/VerseBook
-edit_uri: edit/main/VerseBook/docs/
+repo_name: verselang/book
+repo_url: https://github.com/verselang/book
+edit_uri: edit/main/docs/
 
 theme:
   name: material
-  logo: images/verse.png
+  logo: images/verse.svg
   palette:
     scheme: slate  # Dark theme
     primary: black
@@ -31,6 +31,15 @@ markdown_extensions:
 
 plugins:
   - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
 
 extra_css:
   - extra.css

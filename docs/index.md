@@ -1,14 +1,29 @@
 # Verse Language Documentation
 
-This documentation provides an in-depth look at the Verse programming language, its philosophy, and core concepts.
+!!! warning
+    This is an early draft of the Book of Verse. Suggestions
+    for improvements are welcome. Frequent updates are to be expected.
 
-Verse is a multi-paradigm programming language developed by Epic Games, drawing from functional, logic, and imperative traditions to create a coherent system for building metaverse experiences.
+This documentation provides an in-depth look at the Verse programming
+language, its philosophy, and core concepts.
+
+Verse is a multi-paradigm programming language developed by Epic
+Games, drawing from functional, logic, and imperative traditions to
+create a coherent system for building metaverse experiences.
+
 
 Verse has three core principles:
 
 - **It's just code** - Complex concepts are expressed as primitive Verse constructs
 - **Just one language** - Same constructs for compile-time and run-time
 - **Metaverse first** - Designed for a global simulation environment
+
+!!! note
+      The documentation pertains to the head of the main
+      development branch of Verse, some features may be discussed
+      before they are officially released and are thus subject to
+      change. Some Epic internal features may also be discussed.
+
 
 ## Documentation Sections
 
