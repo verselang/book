@@ -986,7 +986,6 @@ Not all types can be used as map keys. A type must be comparable—meaning value
 - Classes marked with `<unique>` - unique classes only
 - `?t` where `t` is comparable - optionals of comparable types
 - `[]t` where `t` is comparable - arrays of comparable elements
-- `[k]v` where `k` and `v` are comparable - maps as keys
 - `tuple(t0, t1, ...)` where all elements are comparable - tuples of comparable types
 - `struct` types where all fields are comparable
 

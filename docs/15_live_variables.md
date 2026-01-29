@@ -436,7 +436,7 @@ set Health = 0   # Triggers: prints "Player died!"
 set Health = -10 # Nothing happens (already triggered once)
 ```
 
-The `upon` expression evaluates its guard immediately and records the variables read. It then yields a `task(void)` that represents the pending reactive behavior. When dependencies change, the guard is re-evaluated. If it succeeds, the body executes once in a new concurrent task, and the upon completes.
+The `upon` expression evaluates its guard immediately and records the variables read. It then yields a `task(t)` where `t` is the result type of the body, representing the pending reactive behavior. When dependencies change, the guard is re-evaluated. If it succeeds, the body executes once in a new concurrent task, and the upon completes.
 
 This one-shot behavior makes `upon` perfect for state transitions and event notifications. When a threshold is crossed, when a resource becomes available, when a timer expires—these scenarios naturally map to `upon`'s "fire once when condition becomes true" semantics.
 

@@ -878,8 +878,9 @@ set ProcessDog = F3  # OK: tuple(dog)->dog <: tuple(dog)->animal
 #                  # (same parameters, same return - no variance issue here)
 ```
 
-Effects are part of the function type and must match *exactly* -
-effects are **invariant**:
+Effects are part of the function type. A function with fewer effects
+can be used where a function with more effects is expected - effects
+are **covariant** (fewer effects = subtype):
 
 <!--versetest
 using{/Verse.org/Concurrency}
@@ -899,13 +900,15 @@ UsePure(Pure)                    # OK
 UseTransactional(Transactional)  # OK
 UseSuspendable(Suspendable)      # OK
 
-# Invalid: Effects must match exactly
-# UsePure(Transactional)         # ERROR: ()<transacts>:int <> ():int
-# UseTransactional(Pure)         # ERROR: ():int <> ()<transacts>:int
+# Covariance: fewer effects can substitute for more effects
+UseTransactional(Pure)           # OK: ():int <: ()<transacts>:int
+
+# Invalid: more effects cannot substitute for fewer
+# UsePure(Transactional)         # ERROR: ()<transacts>:int </: ():int
 ```
 
-There is no subtyping relationship between functions with different
-effects, even if one seems "weaker" than another.
+A `<computes>` function can be passed where `<transacts>` is expected
+because fewer effects means the function is more constrained.
 
 When you assign different functions conditionally, Verse finds the
 least upper bound (join) of their types:
