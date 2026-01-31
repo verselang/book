@@ -15,14 +15,15 @@ theme:
       primary: black
       accent: deep orange
       toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+        icon: material/brightness-7
+        name: Switch to Light mode
+
     - scheme: default
       primary: black
       accent: deep orange
       toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
+        icon: material/brightness-2
+        name: Switch to Dark mode
   features:
 #    - content.footnote.tooltips
 #    - navigation.tabs
@@ -52,6 +53,7 @@ plugins:
 
 extra_css:
   - extra.css
+  - VerseDark.css
 
 nav:
   - Home: index.md

@@ -81,6 +81,7 @@ class VerseLexer(RegexLexer):
             (r'\s+', Whitespace),
 
             # Comments
+            (r'^\s*<#>\s*\n', Comment.Multiline, 'indented-comment'),
             (r'#[^\n]*', Comment.Single),
             (r'<#', Comment.Multiline, 'multiline-comment'),
 
@@ -119,7 +120,7 @@ class VerseLexer(RegexLexer):
             (r'[0-9][0-9_]*', Number.Integer),
 
             # String literals
-            (r'"(\\\\|\\[^\\]|[^"\\])*"', String.Double),
+            (r'"', String.Double, 'string-double'),
             (r"'(\\\\|\\[^\\]|[^'\\])*'", String.Single),
 
             # Operators
@@ -152,6 +153,13 @@ class VerseLexer(RegexLexer):
             (r'[<#]', Comment.Multiline),          # Single < or #
         ],
 
+        'indented-comment': [
+            (r'^(?=[ ]{0,3}\S)', Text, '#pop'),
+            (r'^[ ]{4,}', Comment.Multiline),   # Indentation (4+ spaces)
+            (r'[^\n]+', Comment.Multiline),
+            (r'\n', Comment.Multiline),
+        ],
+
         'using-block': [
             (r'\s+', Whitespace),
             (r'/', Punctuation),                    # Path separator
@@ -159,6 +167,18 @@ class VerseLexer(RegexLexer):
             (r'\.', Punctuation),                   # Dot in package names
             (r',', Punctuation),
             (r'\}', Punctuation, '#pop'),
+        ],
+
+        'string-double': [
+            (r'<#', Comment.Multiline, 'multiline-comment'), # Comments are allowed inside strings
+            (r'\{', String.Interpol, 'interpolation'),
+            (r'[^"\\{<]+', String.Double),
+            (r'"', String.Double, '#pop'),
+        ],
+
+        'interpolation': [
+            (r'\}', String.Interpol, '#pop'),
+            include('root'), 
         ],
     }
 
