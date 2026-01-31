@@ -39,9 +39,9 @@ The precedence levels from highest to lowest are:
 |------------|-----------|----------|--------|---------------|
 | 11 | `.`, `[]`, `()`, `{}`, `?` (postfix) | Member access, Indexing, Call, Construction, Query | Postfix | Left |
 | 10 | `-` (unary), `not` | Unary operations | Prefix | Right |
-| 9 | `*`, `/`, `%` | Multiplication, Division, Modulo | Infix | Left |
+| 9 | `*`, `/` | Multiplication, Division | Infix | Left |
 | 8 | `+`, `-` (binary) | Addition, Subtraction | Infix | Left |
-| 7 | `<`, `<=`, `>`, `>=` | Relational comparison | Infix | Left |
+| 7 | `<`, `<=`, `>`, `>=` | Relational comparison | Infix | Right |
 | 5 | `and` | Logical AND | Infix | Left |
 | 4 | `or` | Logical OR | Infix | Left |
 | 3 | `..` | Range | Infix | Left |
@@ -60,7 +60,6 @@ Arithmetic operators perform mathematical operations on numeric values. They wor
 | `-` | Subtraction | `int`, `float` | Can be used as unary negation |
 | `*` | Multiplication | `int`, `float` | Converts `int` to `float` when mixed |
 | `/` | Division | `int` (failable), `float` | Integer division returns `rational` |
-| `%` | Modulo | `int`, `float` | Remainder after division |
 
 <!--versetest-->
 <!-- 01 -->

@@ -378,7 +378,13 @@ fundamentally different control flow mechanisms—suspension is about
 time, while failure is about success/failure. Mixing their syntactic
 forms creates ambiguity about what's being handled.
 
-### Prediction effects
+### Internal effects
+
+**[Pre-release]**: The `<no_rollback>` effect is deprecated.
+
+#### Prediction effects
+
+**[Pre-release]**: The `<predicts>` effect is not yet released.
 
 The prediction family determines where code runs in a client-server
 architecture. By default, functions have the `dictates` effect,
@@ -403,7 +409,7 @@ This enables responsive gameplay even with network latency, as players
 see immediate feedback for their actions while the server maintains
 authoritative state.
 
-### Divergence effects
+#### Divergence effects
 
 Currently in planning, the divergence family will track whether
 functions are guaranteed to terminate. The `<converges>` specifier
@@ -411,10 +417,6 @@ will mark functions that provably complete in finite time, while
 functions without it might run forever. This is particularly important
 for constructors and initialization code.
 
-
-### Internal effects
-
-**[Pre-release]**: The `<no_rollback>` effect is deprecated.
 
 <!-- TODO: write more -->
 

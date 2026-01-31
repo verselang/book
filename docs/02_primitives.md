@@ -1307,13 +1307,14 @@ while discarding the unused argument of type `any`.
 
 ## Void
 
-The `void` type is the *empty type*. Unlike `any`, which contains all
-possible values, `void` contains none. It represents the absence of a
-value and is used in places where no result is returned.
+The `void` type represents the absence of a meaningful result and is
+used in places where no result is returned. Technically, `void` is
+a function that accepts any value and evaluates to `false`.
 
-Because `void` has no values, you can never construct or assign a
-value of type `void`. This makes it useful as a marker type in
-function signatures and control flow.
+This design allows a function with return type `void` to have a body
+that evaluates to any type, while ensuring that callers cannot use
+the result. The value produced by the body is passed to `void`, which
+discards it and returns `false`.
 
 A function whose purpose is to perform an effect, rather than compute
 a value, has return type `void`.

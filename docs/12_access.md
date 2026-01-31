@@ -18,6 +18,7 @@ creating well-structured, maintainable code.
 | `<private>` | Only in immediate enclosing scope | Local to class/struct |
 | `<protected>` | Current class and subtypes | Inheritance hierarchies |
 | `<scoped>` | Current scope and enclosing scopes | Special use cases |
+| `<epic_internal>` | Scopes with the /Verse.org, /UnrealEngine.com, and /Fortnite.com domains | `<epic_internal>` is only usable by Epic-authored code |
 
 ## Public
 

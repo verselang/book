@@ -528,7 +528,7 @@ TypeName := type{_Variable:BaseType where Constraint1, Constraint2, ...}
 
 - `_Variable` is a placeholder for the value being constrained
 - `BaseType` is `int` or `float`
-- Constraints are comparison expressions using `<=`, `<`, `>=`, `>`, or `=`
+- Constraints are comparison expressions using `<=`, `<`, `>=`, or `>`
 
 Integer refinements restrict int values to specific ranges:
 
