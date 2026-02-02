@@ -653,7 +653,6 @@ current state. This control is essential for implementing robust
 concurrent systems where you need to coordinate multiple independent
 operations.
 
-### Task Lifecycle and States
 
 A task moves through several distinct states during its lifetime:
 
@@ -676,73 +675,11 @@ Completed state.
 **Interrupted**: A task is interrupted if it was canceled. This is
 equivalent to the Canceled state.
 
-<!--versetest
-BackgroundWork()<suspends>:void = {}
-F()<suspends>:void={
-WorkerTask:task(void) = spawn{BackgroundWork()}
+### Cancel()
 
-# These are mutually exclusive states
-if (WorkerTask.Active[]):
-    Print("Task is still running")
-
-if (WorkerTask.Completed[]):
-    Print("Task finished successfully")
-
-if (WorkerTask.Canceled[]):
-    Print("Task was canceled")
-
-if (WorkerTask.Settled[]):
-    Print("Task is done (completed or canceled)")
-
-if (WorkerTask.Uninterrupted[]):
-    Print("Task completed without cancellation")
-
-}
-<#
--->
-<!-- 15 -->
-```verse
-WorkerTask:task(void) = spawn{BackgroundWork()}
-
-# These are mutually exclusive states
-if (WorkerTask.Active[]):
-    Print("Task is still running")
-
-if (WorkerTask.Completed[]):
-    Print("Task finished successfully")
-
-if (WorkerTask.Canceled[]):
-    Print("Task was canceled")
-
-if (WorkerTask.Settled[]):
-    Print("Task is done (completed or canceled)")
-
-if (WorkerTask.Uninterrupted[]):
-    Print("Task completed without cancellation")
-WorkerTask:task(void) = spawn{BackgroundWork()}
-
-# These are mutually exclusive states
-if (WorkerTask.Active[]):
-    Print("Task is still running")
-
-if (WorkerTask.Completed[]):
-    Print("Task finished successfully")
-
-if (WorkerTask.Canceled[]):
-    Print("Task was canceled")
-
-if (WorkerTask.Settled[]):
-    Print("Task is done (completed or canceled)")
-
-if (WorkerTask.Uninterrupted[]):
-    Print("Task completed without cancellation")
-```
-<!-- #> -->
-
-### Task Methods
-
-#### Cancel()
-
+!!! note
+    The Cancel method has not be released at this time.
+	
 The `Cancel()` method requests cancellation of a task. This is a safe
 operation that can be called on any task in any state:
 
@@ -779,7 +716,7 @@ Calling `Cancel()` on an already completed task is safe and has no
 effect. This means you can cancel tasks without worrying about race
 conditions between completion and cancellation.
 
-#### Await()
+### Await()
 
 The `Await()` method suspends the calling context until the task
 completes, then returns the task's result:
@@ -837,117 +774,6 @@ SecondResult := MyTask.Await()
 ```
 <!-- #> -->
 
-#### State Query Methods
-
-All state query methods use the failable `[]` call syntax. They
-succeed if the task is in the queried state and fail otherwise:
-
-**Active[]** - Succeeds if the task is still running or suspended:
-
-<!--NoCompile-->
-```verse
-if (MyTask.Active[]):
-    Print("Task is still running")
-    MyTask.Cancel()  # Safe to cancel while active
-```
-
-**Completed[]** - Succeeds if the task finished successfully:
-
-<!--NoCompile-->
-```verse
-if (MyTask.Completed[]):
-    Print("Task finished successfully")
-    Result := MyTask.Await()  # Won't block - result available
-```
-
-**Canceled[]** - Succeeds if the task was canceled:
-
-<!--NoCompile-->
-```verse
-if (MyTask.Canceled[]):
-    Print("Task was canceled before completion")
-```
-
-**Settled[]** - Succeeds if the task is done (completed or canceled):
-
-<!--versetest
-ComputeValue<public>()<suspends>:int = 42
-F()<suspends>:void={
-MyTask:task(int) = spawn{ComputeValue()}
-if (MyTask.Settled[]):
-    Print("Task is finished, one way or another")
-else:
-    Print("Task still running")
-}
-<#
--->
-<!-- 23 -->
-```verse
-if (MyTask.Settled[]):
-    Print("Task is finished, one way or another")
-else:
-    Print("Task still running")
-```
-<!-- #> -->
-
-**Unsettled[]** - Succeeds if the task is still active (not completed or canceled):
-
-<!--versetest
-ComputeValue<public>()<suspends>:int = 42
-F()<suspends>:void={
-MyTask:task(int) = spawn{ComputeValue()}
-if (MyTask.Unsettled[]):
-    Print("Task hasn't finished yet")
-}
-<#
--->
-<!-- 24 -->
-```verse
-if (MyTask.Unsettled[]):
-    Print("Task hasn't finished yet")
-```
-<!-- #> -->
-
-**Uninterrupted[]** - Succeeds if the task completed without being canceled:
-
-<!--versetest
-ComputeValue<public>()<suspends>:int = 42
-F()<suspends>:void={
-MyTask:task(int) = spawn{ComputeValue()}
-if (MyTask.Uninterrupted[]):
-    Print("Task completed normally")
-}
-<#
--->
-<!-- 25 -->
-```verse
-if (MyTask.Uninterrupted[]):
-    Print("Task completed normally")
-```
-<!-- #> -->
-
-**Interrupted[]** - Succeeds if the task was canceled:
-
-<!--versetest
-ComputeValue<public>()<suspends>:int = 42
-F()<suspends>:void={
-MyTask:task(int) = spawn{ComputeValue()}
-if (MyTask.Interrupted[]):
-    Print("Task was interrupted")
-}
-<#
--->
-<!-- 26 -->
-```verse
-if (MyTask.Interrupted[]):
-    Print("Task was interrupted")
-```
-<!-- #> -->
-
-`Completed[]` and `Uninterrupted[]` are equivalent, as are
-`Canceled[]` and `Interrupted[]`. The multiple names provide semantic
-clarity depending on whether you're thinking about "completion" or
-"interruption."
 
 ### Common Task Patterns
 
@@ -994,23 +820,6 @@ RunMultipleTasks()<suspends>:void =
     Print("All tasks complete: {Results(0)}, {Results(1)}, {Results(2)}")
 ```
 
-**Graceful shutdown with status checking:**
-
-<!--versetest
-BackgroundService()<suspends>:void={}
-Cleanup():void={}
--->
-<!-- 29 -->
-```verse
-ServiceManager()<suspends>:void =
-    Service:task(void) = spawn{BackgroundService()}
-
-    # Later, shutdown
-    Service.Cancel()
-
-    if (Service.Settled[]):
-        Cleanup()
-```
 
 ### Suspension Points and Cancellation
 
