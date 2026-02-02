@@ -8,13 +8,11 @@ about your code. The type system combines static verification with
 practical flexibility, catching errors at compile time while still
 allowing sophisticated patterns of code reuse and abstraction.
 
-At the apex of this hierarchy sits `any`, the universal supertype from
-which all other types descend. Another universal supertype is `void`,
-which accepts all values—every type is a subtype of `void`. At the
-opposite extreme lies `false`, the empty type that contains no values
-at all (the uninhabited or bottom type). Between these extremes exists
-a carefully designed lattice of types, each with its own capabilities
-and constraints.
+At the top of this hierarchy sits `any`, the universal supertype from
+which all other types descend. At the bottom lies `false`, the empty
+type that contains no values at all (the uninhabited type). Between
+these extremes exists a carefully designed lattice of types, each with
+its own capabilities and constraints.
 
 ## Understanding Subtyping
 
@@ -24,32 +22,41 @@ be used wherever a value of type B is expected. This relationship
 creates a natural ordering among types, from the most specific to the
 most general.
 
-Consider the relationship between `nat` (natural numbers; not a valid
-type in Verse but handy for our examples) and `int` (integers). Every
-natural number is an integer, but not every integer is a natural
-number. Therefore, `nat` is a subtype of `int`. This means you can
-pass a `nat` to any function expecting an `int`, but not vice versa:
+Consider the relationship between `rational` and `int`. Every
+integer is a rational number, but not every rational is an integer.
+Therefore, `int` is a subtype of `ratioanl`. This means you can
+pass an `int` to any function expecting a `rational`, but not vice versa:
 
-<!--NoCompile-->
+<!--versetest
+GetInt(X:int):void = Print("Integer: {X}")
+GetRat(X:rational):void = Print("Rational: {X}")
+MyRat:rational = 1/3
+MyInt:int = -10
+assert: 
+    GetRat(MyInt)  # OK -- int is a subtype of rational
+
+#GetInt(MyRat)  # Compile error -  rational is not a subtype of int
+<# 
+-->
 <!-- 01 -->
 ```verse
-ProcessInteger(X:int):void = Print("Integer: {X}")
-ProcessNatural(X:nat):void = Print("Natural: {X}")
+GetInt(X:int):void = Print("Integer: {X}")
+GetRat(X:rational):void = Print("Rational: {X}")
 
-MyNat:nat = 42
+MyRat:rational = 1/3
 MyInt:int = -10
 
-ProcessInteger(MyNat)  # Works - nat is a subtype of int
-ProcessNatural(MyInt)  # Error - int is not a subtype of nat
+GetRat(MyInt)  # OK -- int is a subtype of rational
+GetInt(MyRat)  # Compile error -  rational is not a subtype of int
 ```
+<!-- #> -->
 
 The subtyping relationship extends to composite types in sophisticated
 ways. Arrays and tuples follow covariant subtyping rules for their
-elements. This means that `[]nat` would be a subtype of `[]int` if
-`nat` was a subtype of `int`. Similarly, `tuple(nat, nat)` would be a
-subtype of `tuple(int, int)`. This covariance allows collections of
-more specific types to be used where collections of more general types
-are expected.
+elements. This means that `[]int` is a subtype of `[]rational`.
+Similarly, `tuple(int, int)` is a subtype of `tuple(rational,
+rational)`. This covariance allows collections of more specific types
+to be used where collections of more general types are expected.
 
 Maps exhibit more complex subtyping behavior. A map type `[K1]V1` is a
 subtype of `[K2]V2` when `K2` is a subtype of `K1` (contravariant in
@@ -138,13 +145,11 @@ Msg:string = "Your score: {Score}"  # Implicit ToString() call
 
 <!-- TODO add a link to the builtin types -->
 
-At the apex of Verse's type hierarchy sits `any`, the universal
+Type `any` is at the top of the type hierarchy it is the universal
 supertype that can hold a value of any type. Every type in Verse is a
-subtype of `any`, making it the most permissive type in the
-system. 
-
-The `any` type serves as an escape hatch when you genuinely need to
-work with values of unknown or varying types. 
+subtype of `any`, making it the most permissive type.  It serves as an
+escape hatch when you genuinely need to work with values of unknown or
+varying types.
 
 Once a value is typed as `any`, you've effectively told the compiler
 "I don't know what this is," and the compiler responds by preventing
@@ -152,11 +157,11 @@ most operations. This is by design—without knowing the actual type,
 the compiler cannot verify that operations are safe.
 
 You can explicitly coerce any value to `any` using function call
-syntax, `any(42)`.
+syntax, `any(42)`. 
 
-Verse automatically coerces values to `any` in several contexts where
-types would otherwise be incompatible. Understanding these rules help
-when working with heterogeneous data.
+Verse automatically coerces values to `any` when their types would
+otherwise be incompatible. Understanding these rules help when working
+with heterogeneous data.
 
 Mixed-type arrays and maps automatically become `any`:
 
@@ -164,9 +169,7 @@ Mixed-type arrays and maps automatically become `any`:
 <!-- 09 -->
 ```verse
 MixedArray :[]any= array{42, "hello", true, 3.14}
-
 MixedMap :[int]any= map{0=>"zero", 1=>1, 2=>2.0}
-
 ConfigMap:[string]any = map{"count"=>42,"name"=>"Player"}
 ```
 
@@ -188,21 +191,16 @@ Logical OR with disjoint types coerces to `any`:
 <!-- 12 -->
 ```verse
 # Returns either int or string
-OneOf(Flag:logic, IntVal:int, StrVal:string):any =
-    (if (Flag?) then {option{IntVal}} else {1=2}) or StrVal
+OneOf(Flag:logic, I:int, S:string):any =
+    (if (Flag?) then {option{I}} else {1=2}) or S
 ```
-
-These implicit coercions make working with heterogeneous data more
-ergonomic, automatically widening types when necessary.
 
 The `any` type has restrictions that reflect its role as a generic
 container:
 
 - You cannot use equality operators with `any`
 - Because `any` is not comparable, it cannot be used as a map key type
-
-When using `any`, prefer to narrow back to specific types as quickly
-as possible with explicit casts.
+- Because `any` is not castable, it is a sticky type.
 
 ## Class and Interface Casting
 
