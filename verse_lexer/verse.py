@@ -95,14 +95,13 @@ class VerseLexer(RegexLexer):
             (r'([a-zA-Z_]\w*)(\s*)(:=)(\s*)\b(' + '|'.join(data_structure_keywords) + r')\b',
              bygroups(Name.Class, Whitespace, Operator, Whitespace, Keyword)),
 
-
             # Function declarations
             (r'\b([a-zA-Z_]\w*)(\s*)(<[^>]+>)?(\s*)(\()',
              bygroups(Name.Function, Whitespace, Name.Decorator, Whitespace, Punctuation)),
 
             # Typed Variable declaration
-            (r'([a-zA-Z_]\w*)(\s*)(:)(\s*)((?:\[\]|\?)*[a-zA-Z_]\w*(?:\{[^}]*\})?)', 
-             bygroups(Name.Variable, Whitespace, Operator, Whitespace, Name)),
+            (r'([a-zA-Z_]\w*)(\s*)(:)(\s*)((?:\[\]|\?|[a-zA-Z_]\w*|[\{\}])* )', 
+             bygroups(Name.Variable, Whitespace, Punctuation, Whitespace, Name)),
 
             # Match the identifier 
             (r'([a-zA-Z_]\w*)(\s*)(:=)', 
