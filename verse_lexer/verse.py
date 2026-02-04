@@ -40,7 +40,8 @@ class VerseLexer(RegexLexer):
         'internal', 'reads', 'writes', 'allocates', 'scoped', 'converges',
         'castable', 'concrete', 'unique', 'final_super', 'open', 'closed',
         'native_callable', 'module_scoped_var_weak_map_key', 'epic_internal',
-        'persistable'
+        'persistable', 'intrinsic', 'final_super_base', 'varies', 'localizes', 
+        'persistent', 'predicts'
     )
 
     # Block-forming keywords (can be followed by :)
