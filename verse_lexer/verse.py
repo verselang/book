@@ -41,7 +41,11 @@ class VerseLexer(RegexLexer):
         'castable', 'concrete', 'unique', 'final_super', 'open', 'closed',
         'native_callable', 'module_scoped_var_weak_map_key', 'epic_internal',
         'persistable', 'intrinsic', 'final_super_base', 'varies', 'localizes', 
+<<<<<<< HEAD
         'persistent', 'predicts', 'getter', 'setter'
+=======
+        'persistent', 'predicts'
+>>>>>>> 82faa2b88360b7e327d82511aace8e097f45478b
     )
 
     # Block-forming keywords (can be followed by :)
