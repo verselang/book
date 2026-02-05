@@ -24,7 +24,7 @@ most general.
 
 Consider the relationship between `rational` and `int`. Every
 integer is a rational number, but not every rational is an integer.
-Therefore, `int` is a subtype of `ratioanl`. This means you can
+Therefore, `int` is a subtype of `rational`. This means you can
 pass an `int` to any function expecting a `rational`, but not vice versa:
 
 <!--versetest
