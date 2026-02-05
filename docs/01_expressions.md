@@ -42,7 +42,7 @@ Integer literals represent whole numbers and can be written in two formats:
 Count := 42
 Negative := -17
 Zero := 0
-Large := 9223372036854775807                # Maximum 64-bit signed integer
+Large := 9223372036854775807                # Maximum 64-bit signed integer literals
 ```
 
 *Hexadecimal notation* uses the `0x` prefix followed by hex digits
@@ -97,12 +97,14 @@ Some rules:
 
 Float literals must fit within IEEE 754 double-precision range or produce compile-time errors:
 
-<!--NoCompile-->
+<!--versetest-->
 <!-- 06 -->
 ```verse
 #TooBig := 1.7976931348623159e+308    # ERROR: Overflow
 Maximum := 1.7976931348623158e+308    # OK: Maximum float
 ```
+
+
 
 #### Character Literals
 

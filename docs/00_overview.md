@@ -87,8 +87,8 @@ Verse features a powerful type system that catches errors at compile time while 
 <!--versetest-->
 <!-- 03 -->
 ```verse
-X := 42                    # Type inferred as int
-Name := "Verse"            # Type inferred as string
+X := 42                    # Type inferred 
+Name := "Verse"            # Type inferred
 ```
 
 **Effect Tracking**
