@@ -129,12 +129,9 @@ error (cannot have two exclusive effects).
 
 The following restrictions are in effect:
 
-- `<suspends>` and `<decides>` cannot be combined on the same function. A
-  function cannot be both asynchronous and failable using these
-  mechanisms—you must choose one or the other.
-- `<converges>` is only allowed on `<native>` functions—you cannot
-  write a non-native converges function
-- Duplicate specifiers (e.g., `<computes><computes>`) are errors
+- `<suspends>` and `<decides>` cannot be combined on the same function,
+- `<converges>` is only allowed on `<native>` functions,
+- duplicate specifiers (e.g., `<computes><computes>`) are errors.
 
 ## How Effects Compose
 
