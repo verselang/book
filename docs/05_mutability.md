@@ -491,6 +491,24 @@ Matrix[0] = array{666}
 Matrix[0][0] = 666
 ```
 
+**Important**: All nested levels should exist to use `set`, if any of the higher levels don't exist, the entire set will fail
+
+<!--versetest-->
+<!-- 24b -->
+```verse
+var Grid:[string][]int = map{"apples"=>array{1,2,3,4}}
+
+set Grid["bananas"] = array{} # ok - no nesting
+set Grid["apples"][2] = 7 # ok - changes nested array "3" to "7"
+
+set Grid["oranges"][0] = 10 # fail: "oranges" key not found in map
+
+# Alternative (make sure that higher levels exist first):
+if (not Grid["oranges"]):
+    set Grid["oranges"] = array{}
+set Grid["oranges"][0] = 10 # succeeds
+```
+
 #### Value Semantics for Collections
 
 Extracting a value from a mutable collection creates an independent copy:

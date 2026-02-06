@@ -172,14 +172,15 @@ Verse automatically coerces values to `any` when their types would
 otherwise be incompatible. Understanding these rules help when working
 with heterogeneous data.
 
-Mixed-type arrays and maps automatically become `any`:
+Mixed-type arrays and maps automatically coerces to the most specific shared
+type, if no common type is found, the array coerces to `any`:
 
 <!--versetest-->
 <!-- 09 -->
 ```verse
-MixedArray :[]any= array{42, "hello", true, 3.14}
-MixedMap :[int]any= map{0=>"zero", 1=>1, 2=>2.0}
-ConfigMap:[string]any = map{"count"=>42,"name"=>"Player"}
+MixedArray := array{42, "hello", true, 3.14} # []comparable
+MixedMap := map{0=>"zero", 1=>1, 2=>2.0} # [int]comparable
+ConfigMap := map{"count"=>42, "process"=>SomeFunction, "name"=>"Player"} # [string]any
 ```
 
 Conditional expressions with disjoint branch types produce `any`:
@@ -220,9 +221,9 @@ how to use each is essential for working with inheritance hierarchies
 and polymorphic code.
 
 Fallible casts use square bracket syntax `TargetType[value]` to
-perform runtime type checks. These casts return an optional value
-(`?TargetType`), succeeding only if the value is actually of the
-target type or a subtype:
+perform runtime type checks. These casts succeeds and return the
+casted value (`TargetType`), and failing if the value is not of
+a valid target type or a subtype:
 
 <!-- 17 -->
 ```verse
@@ -315,18 +316,21 @@ conversions that the compiler can verify will always succeed. These
 casts require the source type to be a compile-time subtype of the
 target type:
 
-<!--versetest
+<!--versetest-->
+<!-- 20 -->
+```verse
 component := class<castable>:
     Name:string = "Component"
 
 physics_component := class<castable>(component):
     Velocity:float = 0.0
--->
-<!-- 20 -->
-```verse
+
 # Upcasting: always safe, always succeeds
-Base:component = physics_component{Velocity := 10.0}
-BaseAgain:component = component(Base)
+Base:physics_component = physics_component{Velocity := 10.0}
+
+BaseComp:component = component(Base) # upcast during expression
+# or
+AlsoBaseComp:component = Base # upcast during assignment
 ```
 
 Any type can be infallibly cast to `void`, which discards the value:
@@ -390,7 +394,7 @@ Test(Comp:component, ExpectedType:castable_subtype(component)):logic =
 # Use with different types
 P := physics_component{}
 Test(P, physics_component)  # true
-not Test(P, render_component)   # false
+Test(P, render_component)   # false
 ```
 <!-- #> -->
 
@@ -793,8 +797,8 @@ else:
 ```
 <!-- #> -->
 
-The cast `percent[UserInput]` returns `?percent`—succeeding if the
-value satisfies the constraint, failing otherwise.
+The cast `percent[UserInput]` returns `percent` succeeding if the
+value satisfies the constraint, or failing otherwise.
 
 ### Examples
 
@@ -1002,10 +1006,10 @@ Find(Items:[]t, Target:t where t:subtype(comparable))<decides>:int =
     for (Index->Item:Items):
         if (Item = Target):
             return Index
-    -1  # Not found
+    false? # Force fail if not found
 
 # Works with any comparable type
-Position := Find[array{"apple", "banana", "cherry"}, "banana"]  # Returns 1
+Position := Find[array{"apple", "banana", "cherry"}, "banana"]  # Succeeds and returns 1
 ```
 
 ### Array-Tuple Comparison
@@ -1070,6 +1074,10 @@ AsComparable(X:comparable):comparable = X
 array{AsComparable(1)} = array{1}              # Succeeds
 array{AsComparable(1)} = array{AsComparable(1)} # Succeeds
 array{AsComparable(1)} <> array{2}             # Succeeds
+
+# With direct upcasting:
+comparable(15) = comparable(15)     # Succeeds
+comparable("Hello") = "Hello"       # Succeeds
 ```
 
 This allows you to create collections that mix different comparable
@@ -1129,6 +1137,8 @@ assert:
 ```verse
 # Generator of integers
 IntSequence:generator(int) = MakeIntegerSequence()
+
+# Generator of entities
 EntityStream:generator(entity) = GetAllEntities()
 ```
 <!-- #> -->
@@ -1927,10 +1937,10 @@ The `GetCastableFinalSuperClass` function queries the type hierarchy to find the
 <!-- 115 -->
 ```verse
 # Takes an instance
-GetCastableFinalSuperClass[BaseType, instance]:<decides>castable_subtype(BaseType)
+GetCastableFinalSuperClass(BaseType, instance)<decides>:castable_subtype(BaseType)
 
 # Takes a type
-GetCastableFinalSuperClassFromType[BaseType, Type]:<decides>castable_subtype(BaseType)
+GetCastableFinalSuperClassFromType(BaseType, Type)<decides>:castable_subtype(BaseType)
 ```
 
 Both return a `castable_subtype` representing the most specific `<final_super>` class that:
@@ -2153,7 +2163,7 @@ InitialSet:classifiable_subset(component) =
     MakeClassifiableSubset(array{physics_component{}, render_component{}})
 
 # Mutable set
-var DynamicSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+DynamicSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
 ```
 
 The base type `t` must be `<castable>`, ensuring runtime type queries
@@ -2231,14 +2241,14 @@ audio_component := class<castable>(component){}
 <!-- 127 -->
 ```verse
 # Add multiple different types
-var Set:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
-Key1 := Set.Add(physics_component{})
-Key2 := Set.Add(render_component{})
-Key3 := Set.Add(audio_component{})
+TheSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+Key1 := TheSet.Add(physics_component{})
+Key2 := TheSet.Add(render_component{})
+Key3 := TheSet.Add(audio_component{})
 
-Set.Contains[component]          # true - all three are components
-Set.Contains[physics_component]  # true - physics_component present
-Set.Contains[render_component]   # true - render_component present
+TheSet.Contains[component]          # succeeds - all three are components
+TheSet.Contains[physics_component]  # succeeds - physics_component present
+TheSet.Contains[render_component]   # succeeds - render_component present
 ```
 
 The set remembers each distinct type that was added. When you remove an instance by its key, that specific type is removed only if it was the last instance of that type:
@@ -2251,17 +2261,17 @@ rigid_body_component := class<castable>(physics_component){ }
 <!-- 128 -->
 ```verse
 # Add multiple instances of same type
-var Set:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
-Key1 := Set.Add(physics_component{})
-Key2 := Set.Add(physics_component{})
+TheSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+Key1 := TheSet.Add(physics_component{})
+Key2 := TheSet.Add(physics_component{})
 
-Set.Contains[physics_component]  # true
+TheSet.Contains[physics_component]  # succeeds
 
-Set.Remove[Key1]
-Set.Contains[physics_component]  # still true - Key2 remains
+TheSet.Remove[Key1]
+TheSet.Contains[physics_component]  # still succeeds - Key2 remains
 
-Set.Remove[Key2]
-# Set.Contains[physics_component]  # false - last instance removed
+TheSet.Remove[Key2]
+# TheSet.Contains[physics_component]  # fail - last instance removed
 ```
 
 #### Core Operations
@@ -2323,7 +2333,7 @@ physics_component := class<castable>(component){}
 -->
 <!-- 132 -->
 ```verse
-var TheSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+TheSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
 Key := TheSet.Add(physics_component{})
 # Can later remove using Key
 ```
@@ -2333,12 +2343,12 @@ Key := TheSet.Add(physics_component{})
 <!--versetest
 component := class<castable>{}
 physics_component := class<castable>(component){}
-Key:classifiable_subset(component)=component{}
 -->
 <!-- 133 -->
 ```verse
-TheSet:classifiable_subset(component) =
-    MakeClassifiableSubset(array{physics_component{}})
+TheSet:classifiable_subset(component) = MakeClassifiableSubsetVar()
+
+Key := TheSet.Add(physics_component{})
 
 if (TheSet.Remove[Key]):
     # Successfully removed
@@ -2402,10 +2412,10 @@ audio_component := class<castable>(component){}
 -->
 <!-- 136 -->
 ```verse
-var Set1:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+Set1:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
 Set1.Add(physics_component{})
 
-var Set2:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+Set2:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
 Set2.Write(Set1.Read())  # Copy Set1's contents to Set2
 ```
 
@@ -2445,7 +2455,7 @@ physics_comp:physics_component = physics_component{}
 
 Mutable sets require careful lifetime management. Keys become invalid
 when their corresponding instances are removed, and attempting to
-remove an already-removed key returns false.
+remove an already-removed key triggers a failure.
 
 Performance characteristics matter for large type sets. While
 `Contains` queries are efficient due to the internal representation,

@@ -1,6 +1,6 @@
 # Container Types
 
-Container types in Verse manage collections and structured data. Optionals represent values that may or may not be present. Tuples group multiple values of different types into ordered sequences. Arrays hold zero or more values of the same type with efficient indexed access. Maps associate keys with values for fast lookups. Weak maps extend regular maps with weak reference semantics for persistent storage.
+Container types in Verse manage collections and structured data. Optionals represent values that may or may not be present. Tuples group multiple values of different types into ordered sequences. Arrays hold zero or more values regardless of the type with efficient indexed access. Maps associate keys with values for fast lookups. Weak maps extend regular maps with weak reference semantics for persistent storage.
 
 Let's explore each container type in detail, starting with optionals that elegantly handle the presence or absence of values.
 
@@ -93,21 +93,23 @@ A common use case is searching for something that may or may not be there. Imagi
 <!-- 07 -->
 ```verse
 Find(N:[]int, X:int):?int =
-    for {I := 0..N.Length} do
-        if (N[I] = X) then return option{I}
+    for (I := 0..N.Length):
+        if (N[I] = X):
+            return option{I}
     return false
 
 var Numbers:[]int = array{10, 20, 30}
 
-Idx:?int = Find[Numbers, 20]    # succeeds with option{1}
-Y := Idx?                       # succeeds with 1
+Idx:?int = Find(Numbers, 20)    # returns option{1}
+Y := Idx?                       # unwraps the optional
+# Y = 1
 ```
 
 Here the optional signals the possibility of failure directly in the type. The `?` operator makes it easy to use the result in an expression, while `option{...}` allows you to turn conditional computations back into optionals. The effect is that the idea of "maybe a value, maybe not" becomes a first-class part of the language, rather than an afterthought, and programmers are encouraged to handle the absence of values in a disciplined way.
 
 ## Tuple
 
-A tuple is a container that groups two or more values. Unlike arrays, which can only contain elements of one type, tuples allow you to combine values of mixed types and treat them as a unit. The elements of a tuple appear in the order in which you list them, and you access them by their position, called the index. Because the number of elements is always known at compile time, a tuple is both simple to create and safe to use.
+A tuple is a container that groups two or more values. Unlike arrays, Tuples allow you to combine values of mixed types and treat them as a unit. The elements of a tuple appear in the order in which you list them, and you access them by their position, called the index. Because the number of elements is always known at compile time, a tuple is both simple to create and safe to use.
 
 The term *tuple* is a back formation from *quadruple*, *quintuple*, *sextuple*, and so on. Conceptually, a tuple is like an unnamed data structure with ordered fields, or like a fixed-size array where each element may have a different type.
 
@@ -276,8 +278,8 @@ game_board := class:
 
     # Get tile at specific position
     GetTile(X:int, Y:int)<decides>:tile_class =
-        Row := Tiles[Y]?
-        Row[X]?
+        Row := Tiles[Y]
+        Row[X]
 
 # Create board instance
 Board := game_board{}
@@ -323,8 +325,11 @@ F():void={
 -->
 <!-- 19 -->
 ```verse
+# Array of comparable - different types sharing comparable in common
+DisjointArray : []comparable = array{42, 13.37, true}
+
 # Array of any - different types with no common supertype
-DisjointArray : []any = array{42, 13.37, true}
+AnyArray : []any = array{15.61, "Message", void}
 ```
 <!--verse
 }
@@ -549,13 +554,13 @@ Slicing also works on strings and character tuples, returning a string:
 
 Arrays provide intrinsic methods for searching, removing, and replacing elements. These operations create new arrays rather than modifying existing ones, maintaining Verse's immutability guarantees.
 
-The `Find()` method searches for the first occurrence of an element and returns its index, or `false` if not found:
+The `Find()` method searches for the first occurrence of an element and returns its index, or fails if not found:
 
 <!--NoCompile-->
 <!-- 33 -->
 ```verse
 # Signature
-Array.Find[Element:t]<decides>:int  # Returns ?int
+Array.Find(Element:t)<decides>:int
 ```
 
 <!--verse
@@ -573,12 +578,18 @@ if (Index := Numbers.Find[2]):
 if (not Numbers.Find[0]):
     # Element not in array
     Print("Not found")
+
+# With strings
+Strings := array{"Apple", "Orange", "Strawberry"}
+
+if (Index := Strings.Find["Strawberry"]):
+    Print("Found at {Index}") # Prints "Found at 2"
 ```
 <!--verse
 }
 -->
 
-`Find()` returns an optional (`?int`), enabling safe handling of missing elements without exceptions or special sentinel values.
+`Find()` returns the first found index on success (`int`), or fails if the element was not found, enabling safe handling of missing elements without exceptions or special sentinel values.
 
 `RemoveFirstElement()` removes the first occurrence:
 
@@ -586,7 +597,7 @@ if (not Numbers.Find[0]):
 <!-- 35 -->
 ```verse
 # Signature
-Array.RemoveFirstElement[Element:t]<decides>:[]t  # Returns ?[]t
+Array.RemoveFirstElement(Element:t)<decides>:[]t
 ```
 
 <!--verse
@@ -601,8 +612,8 @@ if (Updated := Numbers.RemoveFirstElement[2]):
     # Updated is array{1, 3, 1, 2, 3}
     Print("Removed first 2")
 
-if (not Numbers.RemoveFirstElement[0]):
-    # Element not found - returns false
+if (not Numbers.RemoveFirstElement[0]): 
+    # Element not found
     Print("Element not in array")
 ```
 <!--verse
@@ -615,7 +626,7 @@ if (not Numbers.RemoveFirstElement[0]):
 <!-- 37 -->
 ```verse
 # Signature
-Array.RemoveAllElements[Element:t]:[]t
+Array.RemoveAllElements(Element:t):[]t
 
 Numbers := array{1, 2, 3, 1, 2, 3}
 Updated := Numbers.RemoveAllElements[2]
@@ -632,7 +643,7 @@ Same := Numbers.RemoveAllElements[0]
 <!-- 38 -->
 ```verse
 # Signature
-Array.Remove[Index:int]<decides>:[]t  # Returns ?[]t
+Array.Remove(Index:int)<decides>:[]t
 
 Numbers := array{10, 20, 30, 40}
 
@@ -652,7 +663,7 @@ if (not Numbers.Remove[10]):
 <!-- 39 -->
 ```verse
 # Signature
-Array.ReplaceFirstElement[OldValue:t, NewValue:t]<decides>:[]t  # Returns ?[]t
+Array.ReplaceFirstElement(OldValue:t, NewValue:t)<decides>:[]t
 
 Numbers := array{1, 2, 3, 1, 2, 3}
 
@@ -660,7 +671,7 @@ if (Updated := Numbers.ReplaceFirstElement[2, 99]):
     # Updated is array{1, 99, 3, 1, 2, 3}
 
 if (not Numbers.ReplaceFirstElement[0, 99]):
-    # Element not found - returns false
+    # Element not found - fail
 ```
 
 `ReplaceAllElements()` replace all occurrences:
@@ -669,7 +680,7 @@ if (not Numbers.ReplaceFirstElement[0, 99]):
 <!-- 40 -->
 ```verse
 # Signature
-Array.ReplaceAllElements[OldValue:t, NewValue:t]:[]t
+Array.ReplaceAllElements(OldValue:t, NewValue:t):[]t
 
 Numbers := array{1, 2, 3, 1, 2, 3}
 Updated := Numbers.ReplaceAllElements[2, 99]
@@ -686,7 +697,7 @@ Same := Numbers.ReplaceAllElements[0, 99]
 <!-- 41 -->
 ```verse
 # Signature
-Array.ReplaceElement[Index:int, NewValue:t]<decides>:[]t  # Returns ?[]t
+Array.ReplaceElement(Index:int, NewValue:t)<decides>:[]t
 
 Numbers := array{10, 20, 30, 40}
 
@@ -706,7 +717,7 @@ if (not Numbers.ReplaceElement[10, 99]):
 <!-- 42 -->
 ```verse
 # Signature
-Array.ReplaceAll[Pattern:[]t, Replacement:[]t]:[]t
+Array.ReplaceAll(Pattern:[]t, Replacement:[]t):[]t
 
 Numbers := array{1, 2, 3, 4, 2, 3, 5}
 Pattern := array{2, 3}
@@ -718,6 +729,11 @@ Updated := Numbers.ReplaceAll[Pattern, Replacement]
 Numbers2 := array{1, 2, 2, 1, 2, 2, 1}
 Updated2 := Numbers2.ReplaceAll[array{2, 2}, array{9, 9, 9}]
 # Updated2 is array{1, 9, 9, 9, 1, 9, 9, 9, 1}
+
+# Strings are []char
+SomeMessage := "Hey, this is a string, Hello!"
+NewMessage := SomeMessage.ReplaceAll("He", "Apples") # Note: Case sensitive!
+# NewMessage is "Applesy, this is a string, Applesllo!"
 ```
 
 `ReplaceAll()` finds contiguous subsequences matching `Pattern` and replaces each with `Replacement`. The replacement can be any length, including empty.
@@ -728,7 +744,7 @@ Updated2 := Numbers2.ReplaceAll[array{2, 2}, array{9, 9, 9}]
 <!-- 43 -->
 ```verse
 # Signature
-Array.Insert[Index:int, Element:t]<decides>:[]t  # Returns ?[]t
+Array.Insert(Index:int, Element:t)<decides>:[]t
 
 Numbers := array{10, 20, 40}
 
@@ -879,8 +895,8 @@ F(Weights:[string]float)<decides>:void={
 -->
 <!-- 51 -->
 ```verse
-0.00001 < Weights["ant"]    # succeeds, since "ant" is a key
-Weights["car"]              # fails, since "car" is not a key
+Weights["ant"]  # succeeds, since "ant" key exists in map
+Weights["car"]  # fails, the "car" key does not exist in map
 ```
 <!--verse
 }
@@ -895,9 +911,9 @@ F()<decides><transacts>:void={
 ```verse
 var Friendliness:[string]int = map{"peach" => 1000}
 
-set Friendliness["pelican"] = 17     # add a new key
-set Friendliness["peach"] += 2000    # update an existing key
-set Friendliness["tomato"] += 1000   # fails; "tomato" is not in the map
+set Friendliness["pelican"] = 17     # succeed: add a new value with the given key
+set Friendliness["peach"] += 2000    # succeed: update an existing value with the given key
+set Friendliness["tomato"] += 1000   # fail: can't update a value which key does not exist in the map
 ```
 <!--verse
 }
@@ -910,7 +926,7 @@ F(Friendliness:[string]int)<decides>:void={
 -->
 <!-- 53 -->
 ```verse
-Friendliness.Length = 2              # the map has 2 entries
+Friendliness.Length = 2         # succeed: the map has 2 entries
 ```
 <!--verse
 }
@@ -979,11 +995,11 @@ Not all types can be used as map keys. A type must be comparable—meaning value
 **Types that can be used as map keys:**
 
 - `logic` - boolean values
-- `int`, `nat`, `float`, `rational` - numeric types
+- `int`, `float`, `rational` - numeric types
 - `char`, `char32` - character types
 - `string` - text
 - Enumerations - custom enum types
-- Classes marked with `<unique>` - unique classes only
+- Classes and Interfaces marked with `<unique>`
 - `?t` where `t` is comparable - optionals of comparable types
 - `[]t` where `t` is comparable - arrays of comparable elements
 - `tuple(t0, t1, ...)` where all elements are comparable - tuples of comparable types
@@ -996,7 +1012,7 @@ Not all types can be used as map keys. A type must be comparable—meaning value
 - Function types like `t -> u`
 - `subtype(t)` - subtype expressions
 - Regular classes (without `<unique>`)
-- Interfaces
+- Interfaces (without `<unique>`)
 
 Attempting to use a non-comparable type as a key results in a compile-time error.
 
@@ -1206,23 +1222,28 @@ Single := ConcatenateMaps(map{1 => "one"})  # map{1 => "one"}
 
 **Type constraints:**
 
-All maps must have the same key and value types:
+The resulting map type will coerce to the most specific shared type from the input maps:
 
 <!--verse
-F():void={
+SomeRatio : rational = 5 / 3
 -->
 <!-- 68 -->
 ```verse
-# Valid: All maps have same types
+# All maps have same types
 M1 := map{1 => "a"}
 M2 := map{2 => "b"}
-Combined := ConcatenateMaps(M1, M2)  # OK
+Combined := ConcatenateMaps(M1, M2)  # [int]string
 
-# Invalid: Mismatched key types
-# BadMix := ConcatenateMaps(
-#     map{1 => "a"},        # [int]string
-#     map{"x" => "b"}       # [string]string
-# )  # ERROR: Type mismatch
+# Maps with different types
+M3 := map{1 => "a"}
+M4 := map{"string" => "b"}
+Combined2 := ConcatenateMaps(M3, M4)  # [comparable]string
+
+# Mismatched key and value types
+# Assume `SomeRatio : rational = 5 / 3`
+M5 := map{1 => "a"},        # [int]string
+M5 := map{SomeRatio => "b"} # [rational]string
+Combined3 := ConcatenateMaps(M5, M6) # [rational]string
 ```
 <!--verse
 }
@@ -1290,6 +1311,7 @@ var MyWeakMap:weak_map(int,int) = map{}
 <!-- 73 -->
 ```verse
 var MyWeakMap:weak_map(int,int) = map{1 => 2}
+
 # ERROR: Cannot join weak_map with regular map to produce regular map
 # Result:[int]int = if (true?) then MyWeakMap else map{3 => 4}
 ```
@@ -1463,13 +1485,16 @@ AttemptUpdate():void =
         false?  # Transaction fails
 
     # Both updates rolled back
-    # GameData[1] is still false
-    # GameData[2] is still false
+    # GameData[1] still does not exist
+    # GameData[2] still does not exist
 ```
 
 This applies to complete map replacements (for local variables), individual entries, and partial field updates.
 
 ### Island Limits
+
+!!! warning "Important"
+    Current island limits and rules may vary and not match exactly the values shown bellow
 
 There is a **limit on the number of persistent `weak_map` variables** per island. In the standard environment, this limit is 4 persistent weak_maps. Exceeding this limit produces error 3502:
 

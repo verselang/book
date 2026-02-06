@@ -35,18 +35,18 @@ When multiple operators appear in the same expression, they are evaluated accord
 
 The precedence levels from highest to lowest are:
 
-| Precedence | Operators | Category | Format | Associativity |
-|------------|-----------|----------|--------|---------------|
-| 11 | `.`, `[]`, `()`, `{}`, `?` (postfix) | Member access, Indexing, Call, Construction, Query | Postfix | Left |
-| 10 | `-` (unary), `not` | Unary operations | Prefix | Right |
-| 9 | `*`, `/` | Multiplication, Division | Infix | Left |
-| 8 | `+`, `-` (binary) | Addition, Subtraction | Infix | Left |
-| 7 | `<`, `<=`, `>`, `>=` | Relational comparison | Infix | Right |
-| 5 | `and` | Logical AND | Infix | Left |
-| 4 | `or` | Logical OR | Infix | Left |
-| 3 | `..` | Range | Infix | Left |
-| 2 | ~~Lambda expressions~~ | ~~Function literals~~ (not yet supported) | Special | N/A |
-| 1 | `:=`, `=` | Assignment | Infix | Right |
+| Precedence | Operators | Category | Format | Associativity | Example |
+|------------|-----------|----------|--------|---------------|--|
+| 11 | `.`, `[]`, `()`, `{}`, `?` (postfix) | Member access, Indexing, Call, Construction, Query | Postfix | Left | `BossDefeated?`, `Player.Respawn()`|
+| 10 | `+`, `-` (unary), `not` | Unary operations | Prefix | Right | `+Score`, `-Distance`, `not HasCooldown?` |
+| 9 | `*`, `/` | Multiplication, Division | Infix | Left | `Score * Multiplier` |
+| 8 | `+`, `-` (binary) | Addition, Subtraction | Infix | Left | `X + Y`, `Health - Damage` |
+| 7 | `=` (relational), `<>`, `<`, `<=`, `>`, `>=` | Relational comparison | Infix | Right | `Player <> Target`, `Score > 100` |
+| 5 | `and` | Logical AND | Infix | Left | `HasPotion? and TryUsePotion[]` |
+| 4 | `or` | Logical OR | Infix | Left | `IsAlive? or Respawn()` |
+| 3 | `..` | Range | Infix | Left | `0..100`, `-15..50` |
+| 2 | ~~Lambda expressions~~ | ~~Function literals~~ (not yet supported) | Special | N/A | N/A |
+| 1 | `:=`, `set =` | Assignment | Infix | Right | `X := 15`, `set Y = 25` |
 
 ## Arithmetic Operators
 
@@ -140,7 +140,7 @@ if (Score > HighScore):
 if (Health <= 0.0):
     HandlePlayerDeath()
 
-# Equality with different types
+# Example with other comparable types
 if (PlayerName = "Admin"):
     EnableAdminMode()
 
@@ -394,7 +394,7 @@ Player := player_data {
 # Trailing commas are not allowed
 Config := game_config{
     MaxPlayers := 100,
-    EnablePvP := true # ,  -- not allowed
+    EnablePvP := true # ,  -- comma not allowed here
 }
 ```
 <!--verse

@@ -336,7 +336,8 @@ GetWeekStartDecides(D:day)<decides>:string =
 
 **Open Enums Always Require Wildcard or `<decides>`:**
 
-Open enums can have new values added after publication, so they can never be exhaustive:
+Open enums can have new values added after publication, so they can never be exhaustive.\
+This is to ensure backwards compatibility of functions using them (see also [Publishing Functions](06_functions.md/#publishing-functions)):
 
 <!-- 16 -->
 ```verse
@@ -531,7 +532,7 @@ my_attribute := class(attribute):
     # category<constructor>(Name:string)<computes> := my_attribute{}
 
     # Apply to enum and enumerators
-@my_attribute()
+@my_attribute{}
 game_state := enum:
     @my_attribute(MyMetaData = "Initial")
     MainMenu

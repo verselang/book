@@ -645,7 +645,7 @@ The dotted style uses a period to introduce the expression:
 <!--NoCompile-->
 <!-- 24 -->
 ```verse
-Result := if (Score > 90). "excellent" else. "needs improvement"
+Result := if (Score > 90). "excellent" else if (Score > 70). "good" else. "needs improvement" 
 ```
 
 You can even mix styles when it makes sense:
