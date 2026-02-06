@@ -660,25 +660,25 @@ A task moves through several distinct states during its lifetime:
 yet finished. It's still doing work or waiting to resume.
 
 **Completed**: The task finished successfully and returned a
-result. Once completed, a task never changes state again.
+result. Once completed, a task never changes state again. (Terminal state)
 
 **Canceled**: The task was canceled before it could complete. This is
-a terminal state—canceled tasks cannot resume.
+a terminal state — canceled tasks cannot resume.
 
 **Settled**: A task is settled if it has reached either the Completed
-or Canceled state. Settled tasks are no longer executing.
+or Canceled state. Settled tasks are no longer executing. (Terminal state)
 
 **Uninterrupted**: A task is uninterrupted if it completed
 successfully without being canceled. This is equivalent to the
-Completed state.
+Completed state. (alias)
 
 **Interrupted**: A task is interrupted if it was canceled. This is
-equivalent to the Canceled state.
+equivalent to the Canceled state. (alias)
 
-### Cancel()
+### Task.Cancel()
 
-!!! note
-    The Cancel method has not be released at this time.
+!!! note "Unreleased Feature"
+    The Cancel() method has not be released at this time.
 	
 The `Cancel()` method requests cancellation of a task. This is a safe
 operation that can be called on any task in any state:
@@ -716,7 +716,7 @@ Calling `Cancel()` on an already completed task is safe and has no
 effect. This means you can cancel tasks without worrying about race
 conditions between completion and cancellation.
 
-### Await()
+### Task.Await()
 
 The `Await()` method suspends the calling context until the task
 completes, then returns the task's result:
@@ -745,7 +745,7 @@ Print("Task returned: {Result}")
 - **Blocks until completion**: If the task is still running, `Await()`
   suspends until it finishes
 - **Returns immediately if complete**: If the task already finished,
-  `Await()` returns the cached result instantly
+  `Await()` returns the cached result instantly (Sticky)
 - **Can be called multiple times**: You can await the same task
   repeatedly, always getting the same result
 - **Propagates cancellation**: If the awaited task was canceled,
@@ -966,8 +966,8 @@ UseResourceSafely()<suspends>:void =
 **Key defer: behaviors:**
 
 1. **Always executes on scope exit**: Whether the function returns normally, fails, or is canceled, the defer block runs
-2. **Runs in reverse order**: Multiple defer blocks execute in
-   last-in-first-out order (most recent defer runs first)
+2. **Runs in reverse order**: Multiple defer blocks execute in LIFO
+   order (last-in-first-out - most recent defer runs first)
 3. **Captures current scope**: defer blocks close over variables from
    the enclosing scope
 4. **Cannot be suspended**: defer blocks must execute immediately and
@@ -1102,15 +1102,14 @@ finalization.
 
 defer blocks belong to their enclosing function scope and execute when that function exits:
 
-<!--verse
-HelperFunction():void={
+<!--verse -->
+<!-- 45 -->
+```verse
+HelperFunction():void =
     defer:
         Print("Helper defer")
     Print("In helper")
-}
--->
-<!-- 45 -->
-```verse
+
 OuterFunction()<suspends>:void =
     defer:
         Print("Outer defer")
@@ -1173,6 +1172,9 @@ tasks remain responsive to cancellation and share execution time
 fairly with other concurrent operations.
 
 ### NextTick()
+
+!!! note "Unreleased Feature"
+    NextTick() have not yet been released. 
 
 The `NextTick()` function suspends execution until the next simulation
 update (tick). Unlike `Sleep(0.0)` which yields control and may resume
@@ -1535,7 +1537,7 @@ operations, enabling communication without shared mutable state.
 
 The `event(t)` type creates a communication channel where producers
 signal values and consumers await them. Each signal delivers one value
-to one awaiting task:
+to each awaiting task:
 
 <!--versetest
 ProcessValue(:int):void={}
@@ -1623,6 +1625,9 @@ Result := race:
 
 ### Sticky Events
 
+!!! note "Unreleased Feature"
+    Sticky Events have not yet been released and is not currently available.
+
 While basic events deliver each signal to exactly one awaiter,
 `sticky_event(t)` remembers the last signaled value and delivers it to
 all subsequent awaits until a new value is signaled:
@@ -1663,6 +1668,9 @@ just changed?".
 
 ### Subscribable Events
 
+!!! note "Unreleased Feature"
+    Subscribable Events have not yet been released and is not currently available.
+
 The `subscribable_event` type implements the observer pattern,
 allowing multiple handlers to react to each signal. Unlike events
 where awaiting tasks explicitly wait, subscribable events let you
@@ -1676,7 +1684,7 @@ CheckAchievements(:int):void={}
 -->
 <!-- 63 -->
 ```verse
-ScoreEvent := subscribable_event_intrnl(int){}
+ScoreEvent := subscribable_event(int){}
 
 # Subscribe multiple handlers
 Logger := ScoreEvent.Subscribe(LogScore)
@@ -1719,7 +1727,7 @@ signalable(t:type) := interface:
 ```
 
 The `awaitable` interface represents anything that can be waited on,
-while `signalable` represents anything that can receive signals. By
+while `signalable` represents anything that can send signals. By
 separating these capabilities, Verse enables precise control over who
 can produce values versus who can consume them.
 
@@ -1760,7 +1768,7 @@ Handler(:int):void={}
 -->
 <!-- 66 -->
 ```verse
-MyEvent := subscribable_event_intrnl(int){}
+MyEvent := subscribable_event(int){}
 
 # Subscription in a failing transaction
 if:
@@ -1778,7 +1786,7 @@ Handler(:int):void={}
 -->
 <!-- 67 -->
 ```verse
-MyEvent := subscribable_event_intrnl(int){}
+MyEvent := subscribable_event(int){}
 Sub := MyEvent.Subscribe(Handler)
 
 # Cancel in a failing transaction
@@ -1853,7 +1861,7 @@ LogItemPickup(:int):void={}
 -->
 <!-- 70 -->
 ```verse
-ItemPickedUp := subscribable_event_intrnl(int){}
+ItemPickedUp := subscribable_event(int){}
 
 # Each system subscribes independently
 InitializeSystems():void =

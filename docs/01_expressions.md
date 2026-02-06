@@ -208,10 +208,15 @@ F():void=
 -->
 <!-- 11 -->
 ```verse
-LongMessage := "This is a multi-line{
-}string that continues across{
+LongMessage := "This is a multi-line {
+}string that continues across {
 }multiple lines."
-# Result: "This is a multi-linestring that continues acrossmultiple lines."
+# Result: "This is a multi-line string that continues across multiple lines."
+
+OtherMessage := "Another message{
+}    with some empty{
+}    spaces."
+# Result := "Another message    with some empty    spaces."
 ```
 
 Empty interpolants are ignored:
@@ -343,7 +348,7 @@ distinguish between these different kinds of identifiers:
 <!-- 22 -->
 ```verse
 int               # Reference to the int type
-GetValue()        # Reference to a function
+GetValue          # Reference to a function
 Counter           # Reference to a variable
 my_class          # Reference to a class
 ```
@@ -864,9 +869,9 @@ set Map[Key] = MappedValue    # Map entry assignment
 
 Set expressions are themselves expressions, though they're typically
 used for their side effects rather than their value. The left-hand
-side must be a valid lvalue—something that can be assigned to.
+side must be a valid LValue—something that can be assigned to.
 
-Complex lvalues are supported, allowing updates deep within data structures:
+Complex LValues are supported, allowing updates deep within data structures:
 
 <!--verse
 item := class{Name:string = "Item"}

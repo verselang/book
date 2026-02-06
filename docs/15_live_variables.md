@@ -1,6 +1,6 @@
 # Live Variables
 
-!!! warning "Unreleased Feature"
+!!! note "Unreleased Feature"
     Live variables have not yet been released. This chapter documents planned functionality that is not currently available.
 
 Live variables represent a reactive programming paradigm in Verse,
@@ -522,29 +522,29 @@ Canceling a task immediately removes all dependency tracking and prevents the as
 The `batch` expression groups multiple variable updates together, delaying notifications until the entire group completes. This prevents intermediate states from triggering reactive behaviors and ensures observers see consistent snapshots of related changes.
 
 <!--versetest-->
-<!-- 16 FAILURE
-  Line 7: Script Error 3508: Too many arguments. `spawn` will ignore everything except the first argument.
-  Line 8: Script Error 3512: This 'await' macro has the 'suspends' effect, which is not allowed by its context.
-  Line 8: Script Error 3502: Non-Coroutine argument. Currently, `spawn` expects a single coroutine call as an argument.
--->
+<!-- 16 -->
 ```verse
 var X:int = 0
 var Y:int = 0
 
-spawn:
-    await{X > 1}
-    Print("Fired!")
+when(X > 1 and Y < 10):
+    Print("Fired!") # Never prints
+
+when(X):
+    Print("X Changed to {X}!") # Prints once
 
 batch:
-    set X = 2
+    set X = 2   
+    set Y = 10
+    set X += 5
     Print("Inside batch")
 
 Print("After batch")
 
 # Output order:
-# "Inside batch"
-# "Fired!"
-# "After batch"
+# -"Inside batch"
+# -"X Changed to 7!"
+# -"After batch"
 ```
 
 Inside a `batch` block, variable updates occur immediately but notifications to awaiting tasks and reactive constructs are deferred. When the batch completes, all pending notifications fire in the order their triggers occurred, but observers see the final consistent state rather than intermediate values.
@@ -587,23 +587,20 @@ variable updates are rolled back and their notifications are
 suppressed.
 
 <!--versetest-->
-<!-- 18 FAILURE
-  Line 8: Script Error 3538: Non-async argument. `spawn` expects an async argument (currently must be a single coroutine call) to run concurrently.
--->
+<!-- 18 -->
 ```verse
 var X:int = 0
 var Y:int = 0
 
-spawn:
-    upon(X):
-        set Y = X
-
 if:
-    set live X = 5  # Establishes live relationship
+    set live X = Y + 5  # Establishes live relationship
     false?          # Transaction fails
 
+upon(X):
+    Print("{X}") # Does not print when Y changes
+
 # Live relationship was not established
-set Y = 10  # Y remains 0
+set Y = 10  # X remains 0
 ```
 
 This ensures that reactive behaviors only observe committed changes,
