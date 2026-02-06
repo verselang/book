@@ -393,7 +393,7 @@ implementation details to the wider codebase.
 
 ## Separating Read and Write Access
 
-An innovative features is the ability to apply different access
+An innovative feature is the ability to apply different access
 specifiers to reading and writing operations on the same
 variable. This fine-grained control allows you to create variables
 that are widely readable but narrowly writable, implementing common
@@ -422,8 +422,8 @@ The syntax places the write-access specifier on the `var` keyword and
 the read-access specifier on the identifier itself. This visual
 separation makes the access levels immediately clear when reading
 code. The write specifier must be at least as restrictive as the read
-specifier—you cannot have a variable that's privately readable but
-publicly writable, as this would violate basic encapsulation
+specifier — you cannot write to a variable that's privately readable
+but publicly writable, as this would violate basic encapsulation
 principles.
 
 ## Best Practices
@@ -478,6 +478,9 @@ compilation and evolution.
 ### Built-in Annotations
 
 #### @deprecated
+
+!!! warning "Internal Feature"
+    @deprecated attribute is currently an internal feature and cannot be used by end-users.
 
 The `@deprecated` annotation marks definitions that should no longer
 be used. When code references a deprecated definition, the compiler
@@ -552,6 +555,9 @@ The `@deprecated` annotation can be applied to:
 - Modules
 
 #### @experimental
+
+!!! warning "Internal Feature"
+    @deprecated attribute is currently an internal feature and cannot be used by end-users.
 
 The `@experimental` annotation marks features that are not yet stable
 and may change or be removed in future versions. Experimental features
@@ -765,8 +771,7 @@ Constraints on accessors:
 - Not all types are supported for accessor fields
 - Accessor fields are currently only allowed in epic_internal scopes
 
-For more details on accessor patterns, see the "Fields with Accessors"
-section in the Interfaces documentation.
+For more details on accessor patterns, see [Fields with Accessors](10_classes_interfaces.md).
 
 ### Localization
 
@@ -934,7 +939,7 @@ base_ui := class:
 
 derived_ui := class(base_ui):
     # Override the title message
-    (base_ui:)Title<localizes><override>:message = "Derived Title"
+    Title<localizes><override>:message = "Derived Title"
     # Inherits Description from base
 ```
 
@@ -1029,7 +1034,9 @@ Localized messages support standard access specifiers:
 my_module := module:
     PublicMessage<localizes><public> : message = "Public message"
     InternalMessage<localizes> : message = "Internal message"
-    # PrivateMessage<localizes><private> : message = "Private message"  # private not allowed in modules
+
+    some_class := class:
+        PrivateMessage<localizes><private> : message = "Private message"  # private not allowed in module scopes
 ```
 
 #### Best Practices

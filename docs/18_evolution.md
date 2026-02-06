@@ -25,7 +25,7 @@ Backward compatibility in Verse goes beyond simple syntactic preservation—it e
 
 Function effects exemplify this approach. When a function is published with specific effects like `<reads>`, indicating it may read mutable heap data, this becomes part of its contract. Future versions of the function can have fewer effects—evolving from `<reads>` to `<computes>`—but never more. This restriction ensures that code depending on the function's effect profile continues to work correctly, as the function only becomes more pure, never less.
 
-Type evolution follows similar principles. Types can become more specific over time, such as changing from `int` to `nat`, as this represents a refinement rather than a fundamental change. Structures must maintain all existing fields, though new fields can be added. Classes marked with `<final_super>` commit to their inheritance hierarchy permanently, ensuring that code relying on specific inheritance relationships remains valid.
+Type evolution follows similar principles. Types can become more specific over time, such as changing from `rational` to `int`, as this represents a refinement rather than a fundamental change. Structures must maintain all existing fields, though new fields can be added. Classes marked with `<final_super>` commit to their inheritance hierarchy permanently, ensuring that code relying on specific inheritance relationships remains valid.
 
 The enforcement of these rules happens at publication time, not just at compile time. Verse actively prevents developers from publishing updates that would violate compatibility guarantees, turning what might be runtime failures in other systems into publication-time errors that must be resolved before code can be deployed.
 
@@ -194,6 +194,12 @@ For **non-final instance methods**:
 
 - **Cannot convert between normal functions and constructors.** These are fundamentally different callable entities with different calling conventions.
 - **Cannot convert between functions and parametric types.** A function cannot become a type parameter or vice versa.
+
+**Function body:**
+
+- **Cannot change the body of transparent functions.** Verification of callers might depend on the function body of transparent functions, so changes could break callers.
+- **Cannot change the body of opaque functions without the `<reads>` effect.** This is to ensure that `NonReadsFunction()=NonReadsFunction()` even when code is evolving.
+- **Can change the body of opaque functions that have the `<reads>` effect.** Code evolution can be observed by the `<reads>` effect.
 
 **Understanding Variance:**
 

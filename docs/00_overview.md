@@ -10,7 +10,7 @@ Verse is built on three fundamental principles:
 Complex concepts that might require special syntax or constructs in other languages are expressed as regular Verse code. There's no magic—everything is built from the same primitive constructs, creating a uniform and predictable programming model.
 
 - **Just One Language**:
-The same language constructs work at both compile-time and run-time. There's no separate template language, macro system, or preprocessor. What you write is what executes, whether during compilation or at runtime.
+The same language constructs work at both compile-time and run-time. There is no preprocessor. What you write is what executes, whether during compilation or at runtime.
 
 - **Metaverse First**:
 Verse is designed for a future where code runs in a single global simulation—the metaverse. This influences every aspect of the language, from its strong compatibility guarantees to its effect system that tracks side effects and ensures safe concurrent execution.
@@ -73,8 +73,8 @@ M()<decides>:void=
 -->
 <!-- 02 -->
 ```verse
-ValidateInput[Data] # Square braces indicate that this function may fail
-ProcessData(Data)   # Data is only processed if valid, round braces mean must succeed
+ValidateInput[Data] # Square brackets indicate that this function may fail
+ProcessData(Data)   # Data is only processed if valid, parentheses mean must succeed
 ```
 <!-- } -->
 
@@ -87,8 +87,8 @@ Verse features a powerful type system that catches errors at compile time while 
 <!--versetest-->
 <!-- 03 -->
 ```verse
-X := 42                    # Type inferred as int
-Name := "Verse"            # Type inferred as string
+X := 42                    # Type inferred 
+Name := "Verse"            # Type inferred
 ```
 
 **Effect Tracking**
@@ -214,7 +214,7 @@ game_item := class<final><persistable>:
             _ => false  # Fails if the item is legenday or unexpected
     
     # Computed property using closed-world function
-    GetEffectiveValue()<transacts><decides> :int=
+    GetEffectiveValue()<transacts><decides>:int=
         Floor[Stats.Value * GetRarityMultiplier[]]
 
 # Inventory system with state management and effects
@@ -265,7 +265,7 @@ inventory_system := class:
         Print("Purchased {ShopItem.Name} for {Price} gold")
 
     # Higher-order function with type parameters and where clauses
-    FilterItems(Predicate:type{_(:game_item)<decides>:void} ) :[]game_item =
+    FilterItems(Predicate:type{_(:game_item)<decides>:void}):[]game_item =
         for (Item : Items, Predicate[Item]):
             Item
 
@@ -386,7 +386,7 @@ Data structures are immutable unless explicitly marked with `var`. This eliminat
 
 Verse has a set of naming conventions that make code readable and predictable. While the language doesn't enforce these conventions, following them ensures your code integrates well with the broader Verse ecosystem and is immediately familiar to other Verse developers.
 
-Idnetifiers should be in PascalCase (CamelCase starting with uppercase):
+Identifiers should be in PascalCase (CamelCase starting with uppercase):
 
 <!--verse
 PlayerDatabase(id:int)<decides>:player_character=player_character{Name:="", Level:=1}
@@ -645,7 +645,7 @@ The dotted style uses a period to introduce the expression:
 <!--NoCompile-->
 <!-- 24 -->
 ```verse
-Result := if (Score > 90). "excellent" else. "needs improvement"
+Result := if (Score > 90). "excellent" else if (Score > 70). "good" else. "needs improvement" 
 ```
 
 You can even mix styles when it makes sense:
@@ -657,7 +657,7 @@ Result := if:
     ComplexCondition() and
     AnotherCheck() and
     YetAnotherValidation()
-then { "condition met" } ese { "condition not met" }
+then { "condition met" } else { "condition not met" }
 ```
 
 All these forms produce the same result. The choice between them is about readability and context. Use braces when working with existing brace-heavy code, indentation for cleaner vertical layouts, and inline forms for simple expressions. This flexibility lets you write code that reads naturally.

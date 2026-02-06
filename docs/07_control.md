@@ -855,10 +855,9 @@ ProcessFile(FileName:string)<transacts><decides>:void =
 Deferred code executes when the scope exits successfully or through
 explicit control flow like `return`:
 
-<!--NoCompile-->
 <!-- 62 -->
 ```verse
-ProcessQuery()<transacts><decides>:void =
+ProcessQuery()<transacts>:void =
     ConnId := OpenConnection()
     defer:
         CloseConnection(ConnId)  # Cleanup always needed
@@ -866,9 +865,9 @@ ProcessQuery()<transacts><decides>:void =
     for (Attempt := 1..5):
         if (Result := Query[ConnId]):
             ProcessResult(Result)
-            return  # defer executes before return  ## TODO CANT RETURN
+            return  # defer executes after return being called
 
-    false  # defer executes before failure
+    # defer executes before leaving the function scope on success
 ```
 
 This is a subtle but crucial point: if a function fails due to
@@ -886,14 +885,13 @@ RiskyOperation(Id:int)<transacts><decides>:void={}
 ExampleWithFailure()<transacts><decides>:void =
     ResourceId := AcquireResource[]
     defer:
-        ReleaseResource(ResourceId)  # Scheduled...
+        ReleaseResource(ResourceId) # Scheduled...
 
-    if (false?):  # This fails!
-        RiskyOperation[ResourceId]
+    RiskyOperation[ResourceId] # This fails!
     # defer does NOT run - entire scope was speculative and rolled back
 ```
 
-When the `if (false)` fails, the entire function fails, and
+When the `RiskyOperation` fails, the entire function also fails, and
 speculative execution undoes everything—including the defer
 registration. The resource cleanup never happens because the resource
 acquisition itself is rolled back.

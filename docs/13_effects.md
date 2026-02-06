@@ -99,8 +99,8 @@ The six effect families are:
 * **Internal**: Reserved for internal use
 
 Some effects have no specifier, while some specifiers imply multiple
-effects. For instance, `<transacts>` implies `reads`, `writes`, and
-`allocates`, and belongs to both the Heap family.
+effects. For instance, `<transacts>` implies `reads`, `writes` and
+`allocates`, and belongs to the Heap family.
 
 Effect specifiers can be further divided into *exclusive* specifiers
 (`<converges>`, `<computes>`, `<transacts>`) and *additive* specifiers
@@ -112,29 +112,26 @@ error (cannot have two exclusive effects).
 
 |Fundamental Effect|Effect Specifier|Effect Family|Effects implied by Specifier | Notes |
 | -----        | -----------    | -------     | ----- | ---- |
-| **succeeds** |                | Cardinality |                  | *No specifier* |
-| **fails**    |                | Cardinality |                  | *No specifier* |
+| **succeeds** |                | Cardinality |                  | *No specifier; Must Succeed* |
+| **fails**    |                | Cardinality |                  | *No specifier; Can Fail* |
 |              | `<decides>`    | Cardinality | `{succeeds, fails}` | *Cannot combine with `<suspends>`* |
-| **reads**    | `<reads>`      | Heap        | `{reads}`        | |
-| **writes**   | `<writes>`     | Heap        | `{writes}`       | |
-| **allocates**| `<allocates>`  | Heap        | `{allocates}`    | |
-|              | `<transacts>`  | Heap        | `{reads, writes, allocates}` | *Exclusive* |
-|              | `<computes>`   | Heap        | `{}`             | *Exclusive; default* |
+| **reads**    | `<reads>`      | Heap        | `{reads}`        | *Allows reading mutable states* |
+| **writes**   | `<writes>`     | Heap        | `{writes}`       | *Allows writing mutable states* |
+| **allocates**| `<allocates>`  | Heap        | `{allocates}`    | *Allows allocation of mutable memory* |
+|              | `<transacts>`  | Heap        | `{reads, writes, allocates}` | *Exclusive; default* |
+|              | `<computes>`   | Heap        | `{}`             | *Exclusive; Pure computation* |
 | **suspends** | `<suspends>`   | Suspension  | `{suspends}`     | *Cannot combine with `<decides>`* |
-| **diverges** |                | Divergence  | `{diverges}`     | *No specifier* |
-|              | `<converges>`  | Divergence  | `{}`             | *Native functions only and Exclusive* |
-| **dictates** |                | Prediction  | `{dictates}`     | *No specifier* |
-|              | `<predicts>`   | Prediction  | `{}`             | |
-| **no_rollback** |             | Internal    | `{no_rollback}`  | *To be deprecated* |
+| **diverges** |                | Divergence  | `{diverges}`     | *No specifier; May run forever* |
+|              | `<converges>`  | Divergence  | `{}`             | *Exclusive; Native functions only* |
+| **dictates** |                | Prediction  | `{dictates}`     | *No specifier; Server Authority* |
+|              | `<predicts>`   | Prediction  | `{}`             | *Allows Client Prediction* |
+| **no_rollback** |             | Internal    | `{no_rollback}`  | *To be deprecated; Transactions disallowed* |
 
 The following restrictions are in effect:
 
-- <suspends> and <decides> cannot be combined on the same function. A
-  function cannot be both asynchronous and failable using these
-  mechanisms—you must choose one or the other.
-- `<converges>` is only allowed on `<native>` functions—you cannot
-  write a non-native converges function
-- Duplicate specifiers (e.g., `<computes><computes>`) are errors
+- `<suspends>` and `<decides>` cannot be combined on the same function,
+- `<converges>` is only allowed on `<native>` functions,
+- duplicate specifiers (e.g., `<computes><computes>`) are errors.
 
 ## How Effects Compose
 
@@ -212,8 +209,8 @@ ValidateHealth(Health:float)<transacts><decides>:void =
 
 # Usage
 if (ValidateHealth[Player.Health]):
-# Health is valid, continue processing
-StartCombat()
+    # Health is valid, continue processing
+    StartCombat()
 ```
 <!--verse
 #>
@@ -384,7 +381,8 @@ forms creates ambiguity about what's being handled.
 
 #### Prediction effects
 
-**[Pre-release]**: The `<predicts>` effect is not yet released.
+!!! note "Unreleased Feature"
+    The `<predicts>` effect is not yet released.
 
 The prediction family determines where code runs in a client-server
 architecture. By default, functions have the `dictates` effect,

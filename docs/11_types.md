@@ -8,13 +8,11 @@ about your code. The type system combines static verification with
 practical flexibility, catching errors at compile time while still
 allowing sophisticated patterns of code reuse and abstraction.
 
-At the apex of this hierarchy sits `any`, the universal supertype from
-which all other types descend. Another universal supertype is `void`,
-which accepts all values—every type is a subtype of `void`. At the
-opposite extreme lies `false`, the empty type that contains no values
-at all (the uninhabited or bottom type). Between these extremes exists
-a carefully designed lattice of types, each with its own capabilities
-and constraints.
+At the top of this hierarchy sits `any`, the universal supertype from
+which all other types descend. At the bottom lies `false`, the empty
+type that contains no values at all (the uninhabited type). Between
+these extremes exists a carefully designed lattice of types, each with
+its own capabilities and constraints.
 
 ## Understanding Subtyping
 
@@ -24,32 +22,41 @@ be used wherever a value of type B is expected. This relationship
 creates a natural ordering among types, from the most specific to the
 most general.
 
-Consider the relationship between `nat` (natural numbers; not a valid
-type in Verse but handy for our examples) and `int` (integers). Every
-natural number is an integer, but not every integer is a natural
-number. Therefore, `nat` is a subtype of `int`. This means you can
-pass a `nat` to any function expecting an `int`, but not vice versa:
+Consider the relationship between `rational` and `int`. Every
+integer is a rational number, but not every rational is an integer.
+Therefore, `int` is a subtype of `rational`. This means you can
+pass an `int` to any function expecting a `rational`, but not vice versa:
 
-<!--NoCompile-->
+<!--versetest
+GetInt(X:int):void = Print("Integer: {X}")
+GetRat(X:rational):void = Print("Rational: {X}")
+MyRat:rational = 1/3
+MyInt:int = -10
+assert: 
+    GetRat(MyInt)  # OK -- int is a subtype of rational
+
+#GetInt(MyRat)  # Compile error -  rational is not a subtype of int
+<# 
+-->
 <!-- 01 -->
 ```verse
-ProcessInteger(X:int):void = Print("Integer: {X}")
-ProcessNatural(X:nat):void = Print("Natural: {X}")
+GetInt(X:int):void = Print("Integer: {X}")
+GetRat(X:rational):void = Print("Rational: {X}")
 
-MyNat:nat = 42
+MyRat:rational = 1/3
 MyInt:int = -10
 
-ProcessInteger(MyNat)  # Works - nat is a subtype of int
-ProcessNatural(MyInt)  # Error - int is not a subtype of nat
+GetRat(MyInt)  # OK -- int is a subtype of rational
+GetInt(MyRat)  # Compile error -  rational is not a subtype of int
 ```
+<!-- #> -->
 
 The subtyping relationship extends to composite types in sophisticated
 ways. Arrays and tuples follow covariant subtyping rules for their
-elements. This means that `[]nat` would be a subtype of `[]int` if
-`nat` was a subtype of `int`. Similarly, `tuple(nat, nat)` would be a
-subtype of `tuple(int, int)`. This covariance allows collections of
-more specific types to be used where collections of more general types
-are expected.
+elements. This means that `[]int` is a subtype of `[]rational`.
+Similarly, `tuple(int, int)` is a subtype of `tuple(rational,
+rational)`. This covariance allows collections of more specific types
+to be used where collections of more general types are expected.
 
 Maps exhibit more complex subtyping behavior. A map type `[K1]V1` is a
 subtype of `[K2]V2` when `K2` is a subtype of `K1` (contravariant in
@@ -92,6 +99,15 @@ clearly. To convert an integer to a float, you multiply by 1.0:
 MyI:int   = 42
 MyF:float = MyI * 1.0  # Explicit conversion to float
 ```
+
+!!! note 
+    The strongest reason for dissallowing implicit conversions is that
+	they can cause code to break when new overloadings to a function
+	are added. Imagine a call to function `f` that takes a float such
+	as `f(1)`, if the integer argument was implicitly converted to a 
+	float and, in some future library release, an overload `f(:int)` 
+	was added, the call would silently invoke that new function
+	and potentially change the result of the computation.
 
 The reverse conversion, from float to integer, requires choosing a
 rounding strategy:
@@ -138,13 +154,11 @@ Msg:string = "Your score: {Score}"  # Implicit ToString() call
 
 <!-- TODO add a link to the builtin types -->
 
-At the apex of Verse's type hierarchy sits `any`, the universal
+Type `any` is at the top of the type hierarchy it is the universal
 supertype that can hold a value of any type. Every type in Verse is a
-subtype of `any`, making it the most permissive type in the
-system. 
-
-The `any` type serves as an escape hatch when you genuinely need to
-work with values of unknown or varying types. 
+subtype of `any`, making it the most permissive type.  It serves as an
+escape hatch when you genuinely need to work with values of unknown or
+varying types.
 
 Once a value is typed as `any`, you've effectively told the compiler
 "I don't know what this is," and the compiler responds by preventing
@@ -152,22 +166,21 @@ most operations. This is by design—without knowing the actual type,
 the compiler cannot verify that operations are safe.
 
 You can explicitly coerce any value to `any` using function call
-syntax, `any(42)`.
+syntax, `any(42)`. 
 
-Verse automatically coerces values to `any` in several contexts where
-types would otherwise be incompatible. Understanding these rules help
-when working with heterogeneous data.
+Verse automatically coerces values to `any` when their types would
+otherwise be incompatible. Understanding these rules help when working
+with heterogeneous data.
 
-Mixed-type arrays and maps automatically become `any`:
+Mixed-type arrays and maps automatically coerces to the most specific shared
+type, if no common type is found, the array coerces to `any`:
 
 <!--versetest-->
 <!-- 09 -->
 ```verse
-MixedArray :[]any= array{42, "hello", true, 3.14}
-
-MixedMap :[int]any= map{0=>"zero", 1=>1, 2=>2.0}
-
-ConfigMap:[string]any = map{"count"=>42,"name"=>"Player"}
+MixedArray := array{42, "hello", true, 3.14} # []comparable
+MixedMap := map{0=>"zero", 1=>1, 2=>2.0} # [int]comparable
+ConfigMap := map{"count"=>42, "process"=>SomeFunction, "name"=>"Player"} # [string]any
 ```
 
 Conditional expressions with disjoint branch types produce `any`:
@@ -188,21 +201,16 @@ Logical OR with disjoint types coerces to `any`:
 <!-- 12 -->
 ```verse
 # Returns either int or string
-OneOf(Flag:logic, IntVal:int, StrVal:string):any =
-    (if (Flag?) then {option{IntVal}} else {1=2}) or StrVal
+OneOf(Flag:logic, I:int, S:string):any =
+    (if (Flag?) then {option{I}} else {1=2}) or S
 ```
-
-These implicit coercions make working with heterogeneous data more
-ergonomic, automatically widening types when necessary.
 
 The `any` type has restrictions that reflect its role as a generic
 container:
 
 - You cannot use equality operators with `any`
 - Because `any` is not comparable, it cannot be used as a map key type
-
-When using `any`, prefer to narrow back to specific types as quickly
-as possible with explicit casts.
+- Because `any` is not castable, it is a sticky type.
 
 ## Class and Interface Casting
 
@@ -213,9 +221,9 @@ how to use each is essential for working with inheritance hierarchies
 and polymorphic code.
 
 Fallible casts use square bracket syntax `TargetType[value]` to
-perform runtime type checks. These casts return an optional value
-(`?TargetType`), succeeding only if the value is actually of the
-target type or a subtype:
+perform runtime type checks. These casts succeeds and return the
+casted value (`TargetType`), and failing if the value is not of
+a valid target type or a subtype:
 
 <!-- 17 -->
 ```verse
@@ -308,18 +316,21 @@ conversions that the compiler can verify will always succeed. These
 casts require the source type to be a compile-time subtype of the
 target type:
 
-<!--versetest
+<!--versetest-->
+<!-- 20 -->
+```verse
 component := class<castable>:
     Name:string = "Component"
 
 physics_component := class<castable>(component):
     Velocity:float = 0.0
--->
-<!-- 20 -->
-```verse
+
 # Upcasting: always safe, always succeeds
-Base:component = physics_component{Velocity := 10.0}
-BaseAgain:component = component(Base)
+Base:physics_component = physics_component{Velocity := 10.0}
+
+BaseComp:component = component(Base) # upcast during expression
+# or
+AlsoBaseComp:component = Base # upcast during assignment
 ```
 
 Any type can be infallibly cast to `void`, which discards the value:
@@ -383,7 +394,7 @@ Test(Comp:component, ExpectedType:castable_subtype(component)):logic =
 # Use with different types
 P := physics_component{}
 Test(P, physics_component)  # true
-not Test(P, render_component)   # false
+Test(P, render_component)   # false
 ```
 <!-- #> -->
 
@@ -786,8 +797,8 @@ else:
 ```
 <!-- #> -->
 
-The cast `percent[UserInput]` returns `?percent`—succeeding if the
-value satisfies the constraint, failing otherwise.
+The cast `percent[UserInput]` returns `percent` succeeding if the
+value satisfies the constraint, or failing otherwise.
 
 ### Examples
 
@@ -913,17 +924,34 @@ operator'='(X:t, Y:t where t:subtype(comparable))<decides>:t
 operator'<>'(X:t, Y:t where t:subtype(comparable))<decides>:t
 ```
 
-This signature reveals something subtle: both operands must be of the
-same type. This prevents nonsensical comparisons while allowing
-flexibility within type hierarchies:
+The signatures requires that both operands be subtypes of comparable
+and the return type is the least upper bound of their types.
 
 <!--NoCompile-->
 <!-- 46 -->
 ```verse
 0 = 0        # Succeeds - both are int
 0.0 = 0.0    # Succeeds - both are float
-0 = 0.0      # Fails - int and float don't share a subtype relationship
+0 = 0.0      # Fails - there is no implicit conversion from int to float
 ```
+
+Here is an example that highlights how the return type of `=` is computed:
+
+<!--46b -->
+```verse
+I:int=1
+R:rational=1/3
+X:rational= (I=R)  # Compiles and fails at runtime
+
+I:int=1
+S:string="hi"
+Y:comparable= (I=S)  # Compiles and fails at runtime
+```
+
+In the case of variable `X`, its type can be either `rational` or
+`comparable`. For variable `Y`, the only common type between `int` and
+`string` is `comparable`.
+
 
 Classes require special handling for comparability. By default, class
 instances are not comparable because there's no universal way to
@@ -978,10 +1006,10 @@ Find(Items:[]t, Target:t where t:subtype(comparable))<decides>:int =
     for (Index->Item:Items):
         if (Item = Target):
             return Index
-    -1  # Not found
+    false? # Force fail if not found
 
 # Works with any comparable type
-Position := Find[array{"apple", "banana", "cherry"}, "banana"]  # Returns 1
+Position := Find[array{"apple", "banana", "cherry"}, "banana"]  # Succeeds and returns 1
 ```
 
 ### Array-Tuple Comparison
@@ -1046,6 +1074,10 @@ AsComparable(X:comparable):comparable = X
 array{AsComparable(1)} = array{1}              # Succeeds
 array{AsComparable(1)} = array{AsComparable(1)} # Succeeds
 array{AsComparable(1)} <> array{2}             # Succeeds
+
+# With direct upcasting:
+comparable(15) = comparable(15)     # Succeeds
+comparable("Hello") = "Hello"       # Succeeds
 ```
 
 This allows you to create collections that mix different comparable
@@ -1105,6 +1137,8 @@ assert:
 ```verse
 # Generator of integers
 IntSequence:generator(int) = MakeIntegerSequence()
+
+# Generator of entities
 EntityStream:generator(entity) = GetAllEntities()
 ```
 <!-- #> -->
@@ -1357,15 +1391,10 @@ generator, it's exhausted.
 
 ## Type Hierarchies
 
-The type system forms a graph rather than a simple tree. This means
+The type system forms a lattice rather than a simple tree. This means
 types can have multiple supertypes, though multiple inheritance is
 currently limited to interfaces. Understanding these relationships
 helps you design flexible, reusable code.
-
-At the top of the hierarchy, `any` serves as the universal supertype.
-The `void` type is another universal supertype alongside `any`. Every
-type is a subtype of `void`, meaning `void` accepts all values. This
-is fundamentally different from `false`, the true empty/bottom type.
 
 ### Understanding void
 
@@ -1468,21 +1497,16 @@ have their own subtyping rules based on their element types.
 Understanding variance is crucial for working with generic
 containers. Arrays and options are covariant in their element type -
 if A is a subtype of B, then `[]A` is a subtype of `[]B` and `?A` is a
-subtype of `?B`. This allows natural code like (assuming that Verse
-had a `nat` type):
+subtype of `?B`. This allows natural code like:
 
-
-TODO change to RATIONAL
-
-<!--NoCompile-->
 <!-- 89 -->
 ```verse
-ProcessNumbers(Numbers:[]int):void =
+ProcessNumbers(Numbers:[]rational):void =
     for (N : Numbers):
         Print("{N}")
 
-NaturalNumbers:[]nat = array{1, 2, 3}
-ProcessNumbers(NaturalNumbers)  # Works due to covariance
+Numbers:[]int = array{1, 2, 3}
+ProcessNumbers(Numbers)  # Works due to covariance
 ```
 
 Functions exhibit more complex variance. They're contravariant in
@@ -1913,10 +1937,10 @@ The `GetCastableFinalSuperClass` function queries the type hierarchy to find the
 <!-- 115 -->
 ```verse
 # Takes an instance
-GetCastableFinalSuperClass[BaseType, instance]:<decides>castable_subtype(BaseType)
+GetCastableFinalSuperClass(BaseType, instance)<decides>:castable_subtype(BaseType)
 
 # Takes a type
-GetCastableFinalSuperClassFromType[BaseType, Type]:<decides>castable_subtype(BaseType)
+GetCastableFinalSuperClassFromType(BaseType, Type)<decides>:castable_subtype(BaseType)
 ```
 
 Both return a `castable_subtype` representing the most specific `<final_super>` class that:
@@ -2139,7 +2163,7 @@ InitialSet:classifiable_subset(component) =
     MakeClassifiableSubset(array{physics_component{}, render_component{}})
 
 # Mutable set
-var DynamicSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+DynamicSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
 ```
 
 The base type `t` must be `<castable>`, ensuring runtime type queries
@@ -2217,14 +2241,14 @@ audio_component := class<castable>(component){}
 <!-- 127 -->
 ```verse
 # Add multiple different types
-var Set:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
-Key1 := Set.Add(physics_component{})
-Key2 := Set.Add(render_component{})
-Key3 := Set.Add(audio_component{})
+TheSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+Key1 := TheSet.Add(physics_component{})
+Key2 := TheSet.Add(render_component{})
+Key3 := TheSet.Add(audio_component{})
 
-Set.Contains[component]          # true - all three are components
-Set.Contains[physics_component]  # true - physics_component present
-Set.Contains[render_component]   # true - render_component present
+TheSet.Contains[component]          # succeeds - all three are components
+TheSet.Contains[physics_component]  # succeeds - physics_component present
+TheSet.Contains[render_component]   # succeeds - render_component present
 ```
 
 The set remembers each distinct type that was added. When you remove an instance by its key, that specific type is removed only if it was the last instance of that type:
@@ -2237,17 +2261,17 @@ rigid_body_component := class<castable>(physics_component){ }
 <!-- 128 -->
 ```verse
 # Add multiple instances of same type
-var Set:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
-Key1 := Set.Add(physics_component{})
-Key2 := Set.Add(physics_component{})
+TheSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+Key1 := TheSet.Add(physics_component{})
+Key2 := TheSet.Add(physics_component{})
 
-Set.Contains[physics_component]  # true
+TheSet.Contains[physics_component]  # succeeds
 
-Set.Remove[Key1]
-Set.Contains[physics_component]  # still true - Key2 remains
+TheSet.Remove[Key1]
+TheSet.Contains[physics_component]  # still succeeds - Key2 remains
 
-Set.Remove[Key2]
-# Set.Contains[physics_component]  # false - last instance removed
+TheSet.Remove[Key2]
+# TheSet.Contains[physics_component]  # fail - last instance removed
 ```
 
 #### Core Operations
@@ -2309,7 +2333,7 @@ physics_component := class<castable>(component){}
 -->
 <!-- 132 -->
 ```verse
-var TheSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+TheSet:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
 Key := TheSet.Add(physics_component{})
 # Can later remove using Key
 ```
@@ -2319,12 +2343,12 @@ Key := TheSet.Add(physics_component{})
 <!--versetest
 component := class<castable>{}
 physics_component := class<castable>(component){}
-Key:classifiable_subset(component)=component{}
 -->
 <!-- 133 -->
 ```verse
-TheSet:classifiable_subset(component) =
-    MakeClassifiableSubset(array{physics_component{}})
+TheSet:classifiable_subset(component) = MakeClassifiableSubsetVar()
+
+Key := TheSet.Add(physics_component{})
 
 if (TheSet.Remove[Key]):
     # Successfully removed
@@ -2388,10 +2412,10 @@ audio_component := class<castable>(component){}
 -->
 <!-- 136 -->
 ```verse
-var Set1:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+Set1:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
 Set1.Add(physics_component{})
 
-var Set2:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
+Set2:classifiable_subset_var(component) = MakeClassifiableSubsetVar()
 Set2.Write(Set1.Read())  # Copy Set1's contents to Set2
 ```
 
@@ -2431,7 +2455,7 @@ physics_comp:physics_component = physics_component{}
 
 Mutable sets require careful lifetime management. Keys become invalid
 when their corresponding instances are removed, and attempting to
-remove an already-removed key returns false.
+remove an already-removed key triggers a failure.
 
 Performance characteristics matter for large type sets. While
 `Contains` queries are efficient due to the internal representation,

@@ -42,7 +42,7 @@ Integer literals represent whole numbers and can be written in two formats:
 Count := 42
 Negative := -17
 Zero := 0
-Large := 9223372036854775807                # Maximum 64-bit signed integer
+Large := 9223372036854775807                # Maximum 64-bit signed integer literals
 ```
 
 *Hexadecimal notation* uses the `0x` prefix followed by hex digits
@@ -97,12 +97,14 @@ Some rules:
 
 Float literals must fit within IEEE 754 double-precision range or produce compile-time errors:
 
-<!--NoCompile-->
+<!--versetest-->
 <!-- 06 -->
 ```verse
 #TooBig := 1.7976931348623159e+308    # ERROR: Overflow
 Maximum := 1.7976931348623158e+308    # OK: Maximum float
 ```
+
+
 
 #### Character Literals
 
@@ -206,10 +208,15 @@ F():void=
 -->
 <!-- 11 -->
 ```verse
-LongMessage := "This is a multi-line{
-}string that continues across{
+LongMessage := "This is a multi-line {
+}string that continues across {
 }multiple lines."
-# Result: "This is a multi-linestring that continues acrossmultiple lines."
+# Result: "This is a multi-line string that continues across multiple lines."
+
+OtherMessage := "Another message{
+}    with some empty{
+}    spaces."
+# Result := "Another message    with some empty    spaces."
 ```
 
 Empty interpolants are ignored:
@@ -341,7 +348,7 @@ distinguish between these different kinds of identifiers:
 <!-- 22 -->
 ```verse
 int               # Reference to the int type
-GetValue()        # Reference to a function
+GetValue          # Reference to a function
 Counter           # Reference to a variable
 my_class          # Reference to a class
 ```
@@ -862,9 +869,9 @@ set Map[Key] = MappedValue    # Map entry assignment
 
 Set expressions are themselves expressions, though they're typically
 used for their side effects rather than their value. The left-hand
-side must be a valid lvalue—something that can be assigned to.
+side must be a valid LValue—something that can be assigned to.
 
-Complex lvalues are supported, allowing updates deep within data structures:
+Complex LValues are supported, allowing updates deep within data structures:
 
 <!--verse
 item := class{Name:string = "Item"}

@@ -2049,24 +2049,38 @@ the function and its clients. Consider this function:
 
 <!-- 139 -->
 ```verse
-F1<public>(X:int)<computes>:int = X + 1
+F1<public>(X:int):int = X + 1
 ```
 
-The type annotation (`X:int)<computes>:int`) tells us that this
-function promises that given any integer it will always return an
-integer and that it perfoms no heap effects. That contract cannot be
-broken in future versions of the code. The implementation could change
-in the future, perhaps to perform additional operations or
-optimizations, as long as it maintains its signature.
+The type annotation (`X:int):int`) tells us that this function promises that
+given any integer it will always return an integer. That contract cannot be
+broken in future versions of the code. Because it has the default effect, which
+includes the `<reads>` effect, the implementation could change in the future,
+perhaps to perform additional operations or optimizations, as long as it
+maintains its signature.
 
-Functions such as `F1` are sometimes called *opaque* as the return
-type abstracts the funtion's body. Future version of Verse will 
-support *transparent* functions:
+Functions that do not have the `<reads>` effect are less flexible. Consider
+this function:
 
-<!--NoCompile-->
 <!-- 140 -->
 ```verse
-F2<public>(X:int)<computes>:= X + 1
+F2<public>(X:int)<computes>:int = X + 1
+```
+
+Because it has the `<computes>` effect specifier, it does not have the
+`<reads>` effect. Without the `<reads>` effect, this function promises to
+always return the same result for some given parameters. Changing it to return,
+for example, `X + 2` would break that promise, and so must be rejected by the
+compiler as backward incompatible.
+
+Functions such as `F1` and `F2` are sometimes called *opaque* as the return
+type abstracts the function's body. Future version of Verse will support
+*transparent* functions:
+
+<!--NoCompile-->
+<!-- 141 -->
+```verse
+F2<public>(X:int) := X + 1
 ```
 
 A transparent function does not declare its return type, instead the

@@ -230,18 +230,18 @@ utilities := module:
     Calculate(X:int):int = X * 2
 
     # Classes, interfaces, structs
-    data_class:= class:
+    data_class := class:
         Value:int
 
-    data_interface:= interface:
+    data_interface := interface:
         GetValue():int
 
-    data_struct:= struct:
+    data_struct := struct:
         X:float
         Y:float
 
     # Enums
-    status:= enum:
+    status := enum:
         Active
         Inactive
 
@@ -250,7 +250,10 @@ utilities := module:
         NestedFunction():void = {}
 
     # Type aliases
-    coordinate:= tuple(float, float)
+    coordinate := tuple(float, float)
+
+    # Refinement types
+    positive_int := type{X:int where X > 0}
 ```
 
 Unlike functions, classes, or data values, modules are not first-class
@@ -313,8 +316,8 @@ explicitness helps prevent naming conflicts and makes dependencies
 clear.
 
 The `using` statement is the primary mechanism for importing modules
-into your Verse code. It appears at the top of your file, before any
-other code definitions, and makes the contents of the specified module
+into your Verse code. It usually is placed at the top of your file, before
+any other code definitions, and makes the contents of the specified module
 available in your current scope.
 
 The basic syntax is straightforward - the keyword `using` followed by
@@ -507,8 +510,8 @@ using { /GameB/Combat }
 # Both modules might define CalculateDamage
 # You must use qualified names:
 DamageA := Combat.CalculateDamage(10.0)  # Error: ambiguous
-DamageA := /GameA/Combat.CalculateDamage(10.0)  # OK: fully qualified
-DamageB := /GameB/Combat.CalculateDamage(10.0)  # OK: fully qualified
+DamageA := (/GameA/Combat:)CalculateDamage(10.0)  # OK: fully qualified
+DamageB := (/GameB/Combat:)CalculateDamage(10.0)  # OK: fully qualified
 ```
 
 ### Qualified Names
@@ -630,14 +633,14 @@ The following example of shows how evolution works:
 <!-- 22 -->
 ```verse
 # Initial publication
-Thing<public>:int = 666
+Thing<public>:rational = 1/3
 
 # Valid updates:
 # - Change the value (not the type)
-Thing<public>:int = 10
+Thing<public>:rational = 10/3
 
 # - Make the type more specific (subtype)
-Thing<public>:nat = 20  # nat is a subtype of int
+Thing<public>:int = 20  # nat is a subtype of int
 
 # Invalid updates (would be rejected):
 # - Remove the member
@@ -735,7 +738,7 @@ my_class := class:
     var Value<public>:int = 0
     block:
         (local:)Value:int = 42
-        set (/PackagePath/my_class:)Value = (local:)Value
+        set (my_class:)Value = (local:)Value
 ```
 
 The `(local:)` qualifier **cannot** be used in these contexts (all produce error 3612):
@@ -919,11 +922,11 @@ using { /Verse.org/Random }
     (/Verse.org/Random:)GetRandomFloat(0.0, 1.0)
 ```
 
-The compiler resolves `GetRandomFloat` to `/Verse.org/Random:GetRandomFloat` based on the `using` statement.
+The compiler resolves `GetRandomFloat` to `(/Verse.org/Random:)GetRandomFloat` based on the `using` statement.
 
 ### When It Matters
 
-You rarely need to think about automatic qualification during normal
+You rarely need to think about automatic or manual qualification during normal
 development, as the compiler handles it transparently. However,
 understanding it helps in several situations:
 
@@ -1208,11 +1211,11 @@ When working with modules, you may encounter various issues. Understanding these
 <!--NoCompile-->
 <!-- 54 -->
 ```verse
-   # Wrong: different case
-   using { /verse.org/random }  # Error: module not found
+# Wrong: different case
+using { /verse.org/random }  # Error: module not found
 
-   # Correct: proper case
-   using { /Verse.org/Random }  # Works
+# Correct: proper case
+using { /Verse.org/Random }  # Works
 ```
 
 2. **Missing parent module import**: When importing nested modules, ensure the parent is imported first.
@@ -1220,13 +1223,13 @@ When working with modules, you may encounter various issues. Understanding these
 <!--NoCompile-->
 <!-- 55 -->
 ```verse
-   # Wrong: child before parent
-   using { inventory }  # Error if inventory is nested
+# Wrong: child before parent
+using { inventory }  # Error if inventory is nested
 
-   # Correct: parent first
-   using { game_systems }
-   using { inventory }
- ```
+# Correct: parent first
+using { game_systems }
+using { inventory }
+```
 
 3. **File location mismatch**: Ensure your file structure matches your module structure. If you have a folder named `player_systems`, all files in that folder are part of the `player_systems` module.
 
@@ -1240,33 +1243,33 @@ When working with modules, you may encounter various issues. Understanding these
 
 <!--NoCompile-->
 <!-- 56 -->
- ```verse
-   # In module_a
-   SecretValue:int = 42  # Internal by default
-   PublicValue<public>:int = 100  # Explicitly public
+```verse
+# In module_a
+SecretValue:int = 42  # Internal by default
+PublicValue<public>:int = 100  # Explicitly public
 
-   # In another module
-   using { module_a }
-   X := module_a.SecretValue  # Error: not accessible
-   Y := module_a.PublicValue  # Works
- ```
+# In another module
+using { module_a }
+X := module_a.SecretValue  # Error: not accessible
+Y := module_a.PublicValue  # Works
+```
 
 2. **Protected or private members**: These are not accessible outside their defining scope.
 
 <!--NoCompile-->
 <!-- 57 -->
- ```verse
-   # In a class
-   class_a := class:
-       PrivateField<private>:int = 10
-       ProtectedField<protected>:int = 20
-       PublicField<public>:int = 30
+```verse
+# In a class
+class_a := class:
+    PrivateField<private>:int = 10
+    ProtectedField<protected>:int = 20
+    PublicField<public>:int = 30
 
-   # Outside the class
-   Obj := class_a{}
-   X := Obj.PrivateField  # Error: private
-   Y := Obj.PublicField   # Works
- ```
+# Outside the class
+Obj := class_a{}
+X := Obj.PrivateField  # Error: private
+Y := Obj.PublicField   # Works
+```
 
 ### Circular Dependency Errors
 
