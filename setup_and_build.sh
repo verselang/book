@@ -131,7 +131,7 @@ fi
 
 # Build the documentation
 echo -e "${YELLOW}Building documentation site...${NC}"
-mkdocs build
+mkdocs build --verbose
 
 # Check if build was successful
 if [ -d "site" ]; then

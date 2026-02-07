@@ -1,0 +1,75 @@
+/*
+    Verse Dark Theme for Pygments (TEST)
+    Based on verse-dark.tmTheme.json from UEFN VS Code Extension
+*/
+
+:root {
+    --v-bg: #000000;              /* editor.background */
+    --v-fg: #D4D4D4;              /* editor.foreground */
+    --v-comment: #77B06B;         /* comment */
+    --v-keyword: #569cd6;         /* keyword, storage */
+    --v-declaration: #8499b7;     /* keyword.declaration (var, set, :) */
+    --v-operator: #77AFAF;        /* keyword.operator */
+    --v-function: #e5c2ff;        /* entity.name.function */
+    --v-variable: #b9d6ff;        /* variable, path */
+    --v-punctuation: #8499b7;     /* punctuation.definition */
+    --v-string: #C09077;          /* string */
+    --v-escape: #B89047;          /* constant.character.escape */
+    --v-regex: #646695;           /* constant.regexp */
+    --v-number: #c2ddb4;          /* constant.numeric */
+    --v-deleted: #ce9178;         /* markup.deleted */
+    --v-error: #f44747;           /* invalid */
+    --v-inserted: #b5cea8;        /* markup.inserted */
+    --v-highlight: #12002C;       /* editor.lineHighlightBackground */
+}
+
+pre { 
+    background-color: var(--v-bg); 
+    color: var(--v-fg); 
+    /* padding: 10px; */
+}
+
+/* Comments */
+.c, .ch, .cm, .cpf, .c1, .cs { color: var(--v-comment); font-style: italic; }
+.cp { color: var(--v-keyword); } 
+
+/* Keywords */
+.k, .kn, .kp, .kr, .kt, .kc { color: var(--v-keyword); }
+
+/* Keyword.Declaration (var, set, ref) - Distinct from normal keywords */
+.kd { color: var(--v-declaration); }
+
+/* Operators */
+.o, .ow { color: var(--v-operator); }
+
+/* Names */
+.n, .na { color: var(--v-fg); }
+.nc, .nf, .nb { color: var(--v-function); } /* Function, Class, Builtin */
+.nn, .nv { color: var(--v-variable); }      /* Namespace, Variable */
+.nd { color: var(--v-punctuation); }        /* Decorator (@) */
+
+/* Strings */
+.s, .sa, .sb, .sc, .dl, .sd, .s2, .sh, .sx, .s1, .ss { color: var(--v-string); }
+.se, .si { color: var(--v-escape); }
+.sr { color: var(--v-regex); }
+
+/* Numbers */
+.m, .mb, .mf, .mh, .mi, .mo { color: var(--v-number); }
+
+/* Punctuation */
+.p  { color: var(--v-punctuation); }
+
+/* Generic & Meta */
+.gd { color: var(--v-deleted); }
+.ge { font-style: italic; }
+.gr { color: var(--v-error); }
+.gh { color: var(--v-keyword); font-weight: bold; }
+.gi { color: var(--v-inserted); }
+.go { color: var(--v-fg); }
+.gp { color: var(--v-fg); }
+.gs { font-weight: bold; }
+.gu { color: var(--v-keyword); font-weight: bold; }
+.gt { color: var(--v-error); }
+
+/* Highlighted Line */
+.hll { background-color: var(--v-highlight); }
