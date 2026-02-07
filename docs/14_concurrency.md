@@ -653,7 +653,6 @@ current state. This control is essential for implementing robust
 concurrent systems where you need to coordinate multiple independent
 operations.
 
-### Task Lifecycle and States
 
 A task moves through several distinct states during its lifetime:
 
@@ -661,88 +660,26 @@ A task moves through several distinct states during its lifetime:
 yet finished. It's still doing work or waiting to resume.
 
 **Completed**: The task finished successfully and returned a
-result. Once completed, a task never changes state again.
+result. Once completed, a task never changes state again. (Terminal state)
 
 **Canceled**: The task was canceled before it could complete. This is
-a terminal state—canceled tasks cannot resume.
+a terminal state — canceled tasks cannot resume.
 
 **Settled**: A task is settled if it has reached either the Completed
-or Canceled state. Settled tasks are no longer executing.
+or Canceled state. Settled tasks are no longer executing. (Terminal state)
 
 **Uninterrupted**: A task is uninterrupted if it completed
 successfully without being canceled. This is equivalent to the
-Completed state.
+Completed state. (alias)
 
 **Interrupted**: A task is interrupted if it was canceled. This is
-equivalent to the Canceled state.
+equivalent to the Canceled state. (alias)
 
-<!--versetest
-BackgroundWork()<suspends>:void = {}
-F()<suspends>:void={
-WorkerTask:task(void) = spawn{BackgroundWork()}
+### Task.Cancel()
 
-# These are mutually exclusive states
-if (WorkerTask.Active[]):
-    Print("Task is still running")
-
-if (WorkerTask.Completed[]):
-    Print("Task finished successfully")
-
-if (WorkerTask.Canceled[]):
-    Print("Task was canceled")
-
-if (WorkerTask.Settled[]):
-    Print("Task is done (completed or canceled)")
-
-if (WorkerTask.Uninterrupted[]):
-    Print("Task completed without cancellation")
-
-}
-<#
--->
-<!-- 15 -->
-```verse
-WorkerTask:task(void) = spawn{BackgroundWork()}
-
-# These are mutually exclusive states
-if (WorkerTask.Active[]):
-    Print("Task is still running")
-
-if (WorkerTask.Completed[]):
-    Print("Task finished successfully")
-
-if (WorkerTask.Canceled[]):
-    Print("Task was canceled")
-
-if (WorkerTask.Settled[]):
-    Print("Task is done (completed or canceled)")
-
-if (WorkerTask.Uninterrupted[]):
-    Print("Task completed without cancellation")
-WorkerTask:task(void) = spawn{BackgroundWork()}
-
-# These are mutually exclusive states
-if (WorkerTask.Active[]):
-    Print("Task is still running")
-
-if (WorkerTask.Completed[]):
-    Print("Task finished successfully")
-
-if (WorkerTask.Canceled[]):
-    Print("Task was canceled")
-
-if (WorkerTask.Settled[]):
-    Print("Task is done (completed or canceled)")
-
-if (WorkerTask.Uninterrupted[]):
-    Print("Task completed without cancellation")
-```
-<!-- #> -->
-
-### Task Methods
-
-#### Cancel()
-
+!!! note "Unreleased Feature"
+    The Cancel() method has not be released at this time.
+	
 The `Cancel()` method requests cancellation of a task. This is a safe
 operation that can be called on any task in any state:
 
@@ -779,7 +716,7 @@ Calling `Cancel()` on an already completed task is safe and has no
 effect. This means you can cancel tasks without worrying about race
 conditions between completion and cancellation.
 
-#### Await()
+### Task.Await()
 
 The `Await()` method suspends the calling context until the task
 completes, then returns the task's result:
@@ -808,7 +745,7 @@ Print("Task returned: {Result}")
 - **Blocks until completion**: If the task is still running, `Await()`
   suspends until it finishes
 - **Returns immediately if complete**: If the task already finished,
-  `Await()` returns the cached result instantly
+  `Await()` returns the cached result instantly (Sticky)
 - **Can be called multiple times**: You can await the same task
   repeatedly, always getting the same result
 - **Propagates cancellation**: If the awaited task was canceled,
@@ -837,117 +774,6 @@ SecondResult := MyTask.Await()
 ```
 <!-- #> -->
 
-#### State Query Methods
-
-All state query methods use the failable `[]` call syntax. They
-succeed if the task is in the queried state and fail otherwise:
-
-**Active[]** - Succeeds if the task is still running or suspended:
-
-<!--NoCompile-->
-```verse
-if (MyTask.Active[]):
-    Print("Task is still running")
-    MyTask.Cancel()  # Safe to cancel while active
-```
-
-**Completed[]** - Succeeds if the task finished successfully:
-
-<!--NoCompile-->
-```verse
-if (MyTask.Completed[]):
-    Print("Task finished successfully")
-    Result := MyTask.Await()  # Won't block - result available
-```
-
-**Canceled[]** - Succeeds if the task was canceled:
-
-<!--NoCompile-->
-```verse
-if (MyTask.Canceled[]):
-    Print("Task was canceled before completion")
-```
-
-**Settled[]** - Succeeds if the task is done (completed or canceled):
-
-<!--versetest
-ComputeValue<public>()<suspends>:int = 42
-F()<suspends>:void={
-MyTask:task(int) = spawn{ComputeValue()}
-if (MyTask.Settled[]):
-    Print("Task is finished, one way or another")
-else:
-    Print("Task still running")
-}
-<#
--->
-<!-- 23 -->
-```verse
-if (MyTask.Settled[]):
-    Print("Task is finished, one way or another")
-else:
-    Print("Task still running")
-```
-<!-- #> -->
-
-**Unsettled[]** - Succeeds if the task is still active (not completed or canceled):
-
-<!--versetest
-ComputeValue<public>()<suspends>:int = 42
-F()<suspends>:void={
-MyTask:task(int) = spawn{ComputeValue()}
-if (MyTask.Unsettled[]):
-    Print("Task hasn't finished yet")
-}
-<#
--->
-<!-- 24 -->
-```verse
-if (MyTask.Unsettled[]):
-    Print("Task hasn't finished yet")
-```
-<!-- #> -->
-
-**Uninterrupted[]** - Succeeds if the task completed without being canceled:
-
-<!--versetest
-ComputeValue<public>()<suspends>:int = 42
-F()<suspends>:void={
-MyTask:task(int) = spawn{ComputeValue()}
-if (MyTask.Uninterrupted[]):
-    Print("Task completed normally")
-}
-<#
--->
-<!-- 25 -->
-```verse
-if (MyTask.Uninterrupted[]):
-    Print("Task completed normally")
-```
-<!-- #> -->
-
-**Interrupted[]** - Succeeds if the task was canceled:
-
-<!--versetest
-ComputeValue<public>()<suspends>:int = 42
-F()<suspends>:void={
-MyTask:task(int) = spawn{ComputeValue()}
-if (MyTask.Interrupted[]):
-    Print("Task was interrupted")
-}
-<#
--->
-<!-- 26 -->
-```verse
-if (MyTask.Interrupted[]):
-    Print("Task was interrupted")
-```
-<!-- #> -->
-
-`Completed[]` and `Uninterrupted[]` are equivalent, as are
-`Canceled[]` and `Interrupted[]`. The multiple names provide semantic
-clarity depending on whether you're thinking about "completion" or
-"interruption."
 
 ### Common Task Patterns
 
@@ -994,23 +820,6 @@ RunMultipleTasks()<suspends>:void =
     Print("All tasks complete: {Results(0)}, {Results(1)}, {Results(2)}")
 ```
 
-**Graceful shutdown with status checking:**
-
-<!--versetest
-BackgroundService()<suspends>:void={}
-Cleanup():void={}
--->
-<!-- 29 -->
-```verse
-ServiceManager()<suspends>:void =
-    Service:task(void) = spawn{BackgroundService()}
-
-    # Later, shutdown
-    Service.Cancel()
-
-    if (Service.Settled[]):
-        Cleanup()
-```
 
 ### Suspension Points and Cancellation
 
@@ -1157,8 +966,8 @@ UseResourceSafely()<suspends>:void =
 **Key defer: behaviors:**
 
 1. **Always executes on scope exit**: Whether the function returns normally, fails, or is canceled, the defer block runs
-2. **Runs in reverse order**: Multiple defer blocks execute in
-   last-in-first-out order (most recent defer runs first)
+2. **Runs in reverse order**: Multiple defer blocks execute in LIFO
+   order (last-in-first-out - most recent defer runs first)
 3. **Captures current scope**: defer blocks close over variables from
    the enclosing scope
 4. **Cannot be suspended**: defer blocks must execute immediately and
@@ -1293,15 +1102,14 @@ finalization.
 
 defer blocks belong to their enclosing function scope and execute when that function exits:
 
-<!--verse
-HelperFunction():void={
+<!--verse -->
+<!-- 45 -->
+```verse
+HelperFunction():void =
     defer:
         Print("Helper defer")
     Print("In helper")
-}
--->
-<!-- 45 -->
-```verse
+
 OuterFunction()<suspends>:void =
     defer:
         Print("Outer defer")
@@ -1364,6 +1172,9 @@ tasks remain responsive to cancellation and share execution time
 fairly with other concurrent operations.
 
 ### NextTick()
+
+!!! note "Unreleased Feature"
+    NextTick() have not yet been released. 
 
 The `NextTick()` function suspends execution until the next simulation
 update (tick). Unlike `Sleep(0.0)` which yields control and may resume
@@ -1726,7 +1537,7 @@ operations, enabling communication without shared mutable state.
 
 The `event(t)` type creates a communication channel where producers
 signal values and consumers await them. Each signal delivers one value
-to one awaiting task:
+to each awaiting task:
 
 <!--versetest
 ProcessValue(:int):void={}
@@ -1814,6 +1625,9 @@ Result := race:
 
 ### Sticky Events
 
+!!! note "Unreleased Feature"
+    Sticky Events have not yet been released and is not currently available.
+
 While basic events deliver each signal to exactly one awaiter,
 `sticky_event(t)` remembers the last signaled value and delivers it to
 all subsequent awaits until a new value is signaled:
@@ -1854,6 +1668,9 @@ just changed?".
 
 ### Subscribable Events
 
+!!! note "Unreleased Feature"
+    Subscribable Events have not yet been released and is not currently available.
+
 The `subscribable_event` type implements the observer pattern,
 allowing multiple handlers to react to each signal. Unlike events
 where awaiting tasks explicitly wait, subscribable events let you
@@ -1867,7 +1684,7 @@ CheckAchievements(:int):void={}
 -->
 <!-- 63 -->
 ```verse
-ScoreEvent := subscribable_event_intrnl(int){}
+ScoreEvent := subscribable_event(int){}
 
 # Subscribe multiple handlers
 Logger := ScoreEvent.Subscribe(LogScore)
@@ -1910,7 +1727,7 @@ signalable(t:type) := interface:
 ```
 
 The `awaitable` interface represents anything that can be waited on,
-while `signalable` represents anything that can receive signals. By
+while `signalable` represents anything that can send signals. By
 separating these capabilities, Verse enables precise control over who
 can produce values versus who can consume them.
 
@@ -1951,7 +1768,7 @@ Handler(:int):void={}
 -->
 <!-- 66 -->
 ```verse
-MyEvent := subscribable_event_intrnl(int){}
+MyEvent := subscribable_event(int){}
 
 # Subscription in a failing transaction
 if:
@@ -1969,7 +1786,7 @@ Handler(:int):void={}
 -->
 <!-- 67 -->
 ```verse
-MyEvent := subscribable_event_intrnl(int){}
+MyEvent := subscribable_event(int){}
 Sub := MyEvent.Subscribe(Handler)
 
 # Cancel in a failing transaction
@@ -2044,7 +1861,7 @@ LogItemPickup(:int):void={}
 -->
 <!-- 70 -->
 ```verse
-ItemPickedUp := subscribable_event_intrnl(int){}
+ItemPickedUp := subscribable_event(int){}
 
 # Each system subscribes independently
 InitializeSystems():void =
@@ -2134,47 +1951,6 @@ SpawnWave(Enemies:[]enemy_class)<suspends>:void =
         spawn{Enemy.Spawn()}
         Sleep(0.5)  # Half second between spawns
 ```
-
-## Error Handling in Concurrent Code
-
-### Failure Propagation
-
-Failures in concurrent expressions propagate differently:
-
-<!--versetest
-OperationThatSucceeds()<suspends>:void={}
-OperationThatFails()<suspends>:void={}
-AnotherOperation()<suspends>:void={}
-F()<suspends>:void={
-sync:
-    OperationThatSucceeds()
-    OperationThatFails()  # Failure occurs
-    AnotherOperation()    # Still executes
-# Entire sync fails after all complete
-
-# In race: winner determines success/failure
-race:
-    OperationThatFails()   # If this wins, race fails
-    OperationThatSucceeds() # If this wins, race succeeds
-}
-<#
--->
-<!-- 75 -->
-```verse
-# In sync: all expressions complete, then failure propagates
-sync:
-    OperationThatSucceeds()
-    OperationThatFails()  # Failure occurs
-    AnotherOperation()    # Still executes
-# Entire sync fails after all complete
-
-# In race: winner determines success/failure
-race:
-    OperationThatFails()   # If this wins, race fails
-    OperationThatSucceeds() # If this wins, race succeeds
-```
-<!-- #> -->
-
 
 ## Limitations and Considerations
 

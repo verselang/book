@@ -9,7 +9,6 @@ This index provides quick access to key concepts, language features, and importa
 - **void** - empty type: [Primitives - Void](02_primitives.md#void), [Type System](11_types.md)
 - **logic** - boolean values: [Primitives - Booleans](02_primitives.md#booleans), [Type System](11_types.md)
 - **int** - integers: [Overview](00_overview.md), [Primitives - Integers](02_primitives.md#integers), [Type System](11_types.md)
-- **nat** - natural numbers: [Type System](11_types.md)
 - **float** - floating-point: [Overview](00_overview.md), [Primitives - Floats](02_primitives.md#floats), [Type System](11_types.md)
 - **rational** - exact fractions: [Primitives - Rationals](02_primitives.md#rationals), [Operators](04_operators.md), [Type System](11_types.md)
 - **char** - UTF-8 character: [Primitives - Characters and Strings](02_primitives.md#characters-and-strings), [Type System](11_types.md)

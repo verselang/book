@@ -643,22 +643,25 @@ Lerp(-10.0, 10.0, 0.5)  # Returns 0.0
 
 The formula is: `From + Parameter * (To - From)`
 
-`IsFinite` checks if a float is finite and returns `true` if the value
-is not NaN, Inf, or -Inf:
+`IsFinite` checks if a float is finite and suceeds if the value
+is not NaN, Inf, or -Inf. And fails otherwise:
 
 <!--versetest-->
 <!-- 33 -->
 ```verse
 # Method on float values
-# X.IsFinite():logic
+# X.IsFinite()<computes><decides>:float
 
-(5.0).IsFinite[]      # Returns true
-(0.0).IsFinite[]      # Returns true
-(-100.0).IsFinite[]   # Returns true
+(5.0).IsFinite[]      # succeeds
+(0.0).IsFinite[]      # succeeds
+(-100.0).IsFinite[]   # succeeds
 
-not (Inf).IsFinite[]  # Returns false
-not (-Inf).IsFinite[] # Returns false
-not (NaN).IsFinite[]  # Returns false
+(Inf).IsFinite[]  # fails
+(-Inf).IsFinite[] # fails
+(NaN).IsFinite[]  # fails
+
+# Returns the same number if succeeds
+(15.16).IsFinite[] = 15.16 # succeeds, both are equal
 
 # Useful for validation
 # SafeCalculation(X:float, Y:float)<decides>:float =
@@ -775,7 +778,7 @@ MyName:string="J"
 ```verse
 TheLetterJ := MyName[0]     # succeeds
 TheLetterJ = 'J'            # succeeds
-# MyName[100]              # fails
+# MyName[100]               # fails
 ```
 
 The length of a string is the number of UTF-8 code units it contains,
@@ -947,9 +950,15 @@ Strings can span multiple lines using interpolation braces for continuation:
 <!--versetest-->
 <!-- 50 -->
 ```verse
-LongMessage := "This is a multi-line{
-}string that continues across{
+LongMessage := "This is a multi-line {
+}string that continues across {
 }multiple lines."
+
+# Attention to whitespace:
+AnotherMessage := "This is another {
+}  multi-line message with     {
+    # This comment is ignored
+}    many spaces."
 ```
 
 Empty interpolants `{}` are ignored, which is useful for line
@@ -1176,7 +1185,7 @@ potentially failing:
 ```verse
 # Function that might produce a value of any type
 MaybeValue(T:type, Condition:logic):?T =
-    if (Condition):
+    if (Condition?):
         # Cannot construct T generically, return failure
         false
     else:

@@ -116,8 +116,8 @@ day := enum<persistable>:
 
 Important notes:
 
-- Closed persistable enums cannot be changed to open after publication
-- Open persistable enums can have new values added after publication
+- `<closed>` persistable enums cannot be changed to open after publication
+- Only `<open>` persistable enums can have new values added after publication
 
 ## Prohibited Field Types
 
@@ -195,6 +195,9 @@ GetOrCreatePlayerStats(Player : player) : player_stats =
 
 
 ## JSON Serialization
+
+!!! note "Unreleased Feature"
+    JSON Serialization have not yet been released and is not publicly available.
 
 Verse provides JSON serialization functions for persistable types,
 enabling manual serialization and deserialization of data. While the
