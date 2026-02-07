@@ -61,7 +61,6 @@ plugins:
 
 extra_css:
   - extra.css
-  - css/Verse.css
 
 extra_javascript:
   - type: module
