@@ -30,14 +30,14 @@ theme:
     - search.suggest
 
 markdown_extensions:
- - admonition
- - pymdownx.details
- - footnotes
- - pymdownx.highlight:
+  - admonition
+  - pymdownx.details
+  - footnotes
+  - pymdownx.highlight:
       default_lang: verse
       linenums: false
       pygments_style: monokai
- - pymdownx.superfences
+  - pymdownx.superfences
 
 plugins:
   - search

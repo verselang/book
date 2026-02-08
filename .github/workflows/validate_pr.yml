@@ -1,0 +1,16 @@
+name: Pull Request Build Validation for MKDocs
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened        # New PR created
+      - synchronize   # New commits pushed to PR
+  workflow_dispatch:  # Allow Manual Trigger
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    permissions:
+      contents: read

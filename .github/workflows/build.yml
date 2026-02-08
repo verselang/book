@@ -1,0 +1,46 @@
+name: Build MkDocs
+
+on:
+  workflow_call:      # Allow other workflows to call this
+    inputs:
+      upload:
+        description: 'Whether to upload the compiled artifact'
+        required: false
+        default: false
+        type: boolean
+  workflow_dispatch:  # Allow Manual Trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: |
+            docs
+            verse_lexer
+            mkdocs.yml
+            requirements.txt
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Build MkDocs site
+        run: mkdocs build
+
+      - name: Upload artifact
+        if: ${{ inputs.upload }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
