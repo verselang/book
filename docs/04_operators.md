@@ -130,7 +130,19 @@ Comparison operators test relationships between values and are failable expressi
 | `=` | Equal to | All comparable types | `Name = "Player1"` |
 | `<>` | Not equal | All comparable types | `State <> idle` |
 
-<!--NoCompile-->
+<!--versetest
+HandlePlayerDeath():void={}
+EnableAdminMode():void={}
+ShowMenu():void={}
+UnlockAchievement():void={}
+GameState := enum{Playing, Paused}
+Score:int = 1500
+HighScore:int = 1000
+Health:float = 0.0
+PlayerName:string = "Admin"
+CurrentState:GameState = GameState.Paused
+Level:int = 15
+-->
 <!-- 03 -->
 ```verse
 # Numeric comparisons
@@ -164,14 +176,18 @@ The following types support equality comparison operations (`=` and `<>`):
 
 Comparisons between different types generally fail:
 
-<!--verse
-F()<decides>:void=
+<!--versetest
+assert:
+    not (0 = 0.0)  # Fails: int vs float
+    not ("5" = 5)  # Fails: string vs int
+<#
 -->
 <!-- 04 -->
 ```verse
 0 = 0.0  # Fails: int vs float
 "5" = 5  # Fails: string vs int
 ```
+<!-- #> -->
 
 ## Logical Operators
 
@@ -181,9 +197,8 @@ Logical operators work with failable expressions and control the flow of success
 
 The query operator checks if a `logic` value is `true` (see [Failure](08_failure.md#failable-expressions) for how `?` works with other types):
 
-<!--verse
+<!--versetest
 StartGame():void={}
-F():void=
 -->
 <!-- 05 -->
 ```verse
@@ -201,9 +216,8 @@ if (IsReady = true):
 
 The `not` operator negates the success or failure of an expression:
 
-<!--verse
+<!--versetest
 ContinuePlaying()<computes>:void={}
-F(IsGameOver:?int):void=
 -->
 <!-- 06 -->
 ```verse
@@ -221,14 +235,21 @@ if (not (set X = 5, IsGameOver?)):
 
 The `and` operator succeeds only if both operands succeed:
 
-<!--NoCompile-->
+<!--versetest
+EnterRoom()<computes>:void={}
+AllowQuestAccess()<computes>:void={}
+HasKey:?int = option{1}
+DoorUnlocked:?int = option{1}
+player := class{Level:int = 10, HasItem:logic = true}
+Player:player = player{}
+-->
 <!-- 07 -->
 ```verse
 if (HasKey? and DoorUnlocked?):
     EnterRoom()
 
 # Both expressions must succeed
-if (Player.Level > 5 and Player.HasItem("Sword")):
+if (Player.Level > 5 and Player.HasItem?):
     AllowQuestAccess()
 ```
 
@@ -236,14 +257,21 @@ if (Player.Level > 5 and Player.HasItem("Sword")):
 
 The `or` operator succeeds if at least one operand succeeds:
 
-<!--NoCompile-->
+<!--versetest
+OpenDoor()<computes>:void={}
+ProcessResult()<computes>:void={}
+HasKeyCard:?int = false
+HasMasterKey:?int = option{1}
+QuickCheck()<computes><decides>:void = {}
+ExpensiveCheck()<computes><decides>:void = {}
+-->
 <!-- 08 -->
 ```verse
 if (HasKeyCard? or HasMasterKey?):
     OpenDoor()
 
 # Short-circuit evaluation - second operand not evaluated if first succeeds
-if (QuickCheck() or ExpensiveCheck()):
+if (QuickCheck[] or ExpensiveCheck[]):
     ProcessResult()
 ```
 
@@ -262,7 +290,7 @@ Consider two expressions `P` and `Q` which may either succeed or fail, the follo
 
 The `:=` operator initializes constants and variables:
 
-<!--NoCompile-->
+<!--versetest-->
 <!-- 09 -->
 ```verse
 # Constant initialization (immutable)
@@ -281,7 +309,6 @@ The `set =` operator updates variable values:
 
 <!--verse
 vector3:=struct{X:float, Y:float, Z:float}
-F():void={
 -->
 <!-- 10 -->
 ```verse
@@ -291,9 +318,6 @@ set Points = 100
 var Position:vector3 = vector3{X := 0.0, Y := 0.0, Z := 0.0}
 set Position = vector3{X := 10.0, Y := 20.0, Z := 0.0}
 ```
-<!--verse
-}
--->
 
 ## Special Operators
 
@@ -337,7 +361,20 @@ EmptyCall := MyFunction2[]                  # and optional values
 
 The dot operator accesses fields and methods of objects:
 
-<!--NoCompile-->
+<!--versetest
+player := class{Health:float = 100.0, GetName()<computes>:string = "Hero"}
+vector3 := struct{X:float, Y:float, Z:float}
+config_settings := struct{MaxPlayers:int = 10}
+config := struct{Settings:config_settings = config_settings{}}
+object_type := class{
+    FirstMethod()<transacts>:object_type = object_type{}
+    SecondMethod()<computes>:void = {}
+}
+Player:player = player{}
+MyVector:vector3 = vector3{X:=1.0, Y:=2.0, Z:=3.0}
+Config:config = config{}
+MyObject:object_type = object_type{}
+-->
 <!-- 12 -->
 ```verse
 Player.Health
@@ -346,38 +383,30 @@ MyVector.X
 Config.Settings.MaxPlayers
 
 # Line continuation supported after dot
-LongExpression := MyObject.
-    FirstMethod().
-    SecondMethod()
+LongExpression := MyObject.FirstMethod().
+                           SecondMethod()
 ```
 
 ### Range
 
 The range operator creates ranges for iteration:
 
-<!--verse
-using { /Verse.org/VerseCLR }
-F():void={
--->
+<!--versetest-->
 <!-- 13 -->
 ```verse
 # Inclusive range
 for (I := 0..4):
     Print("{I}")  # Prints 0, 1, 2, 3, 4
 ```
-<!--verse
-}
--->
 
 ### Object Construction
 
 Curly braces are used to construct objects when placed after a type:
 
-<!--verse
+<!--versetest
 point:=struct{X:int, Y:int}
 player_data:=struct{Name:string,Level:int,Health:float}
 game_config:=struct{MaxPlayers:int,EnablePvP:logic}
-F():void={
 -->
 <!-- 14 -->
 ```verse
@@ -397,26 +426,18 @@ Config := game_config{
     EnablePvP := true # ,  -- comma not allowed here
 }
 ```
-<!--verse
-}
--->
 
 ### Tuple Access
 
 Round braces when used with a single argument after a tuple expression, accesses tuple elements:
 
-<!--verse
-F():void={
--->
+<!--versetest-->
 <!-- 15 -->
 ```verse
 MyTuple := (10, 20, 30)
 FirstElement := MyTuple(0)  # Access first element
 SecondElement := MyTuple(1)  # Access second element
 ```
-<!--verse
-}
--->
 
 ## Type Conversions
 
