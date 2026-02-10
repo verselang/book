@@ -64,19 +64,23 @@ Multiply := for (X : Array) { X * 42 }
 
 Instead of boolean conditions and exceptions, Verse uses failure as a primary control flow mechanism. Expressions can succeed (producing a value) or fail (producing no value), enabling natural control flow patterns:
 
-<!--verse
+<!--versetest
 ValidateInput(x:string)<computes><decides>:void= {}
 ProcessData(x:string)<computes>:void= {}
 myclass := class{
 Data:string="hi"
 M()<decides>:void=
+    ValidateInput[Data] # Square brackets indicate that this function may fail
+    ProcessData(Data)   # Data is only processed if valid, parentheses mean must succeed
+}
+<#
 -->
 <!-- 02 -->
 ```verse
 ValidateInput[Data] # Square brackets indicate that this function may fail
 ProcessData(Data)   # Data is only processed if valid, parentheses mean must succeed
 ```
-<!-- } -->
+<!-- #> -->
 
 See [Failure](08_failure.md) for complete details on failable expressions and failure contexts, and [Control Flow](07_control.md) for if expressions.
 
@@ -95,10 +99,14 @@ Name := "Verse"            # Type inferred
 
 Functions declare their side effects through specifiers like `<computes>`, `<reads>`, `<writes>`, `<transacts>`, `<decides>`, and `<suspends>`. These effect specifiers make it immediately clear what a function can do beyond computing its return value:
 
-<!--verse
+<!--versetest
 x := class:
     GetCurrentValue()<reads>:int=1
     var Score:int=0
+    PureCompute()<computes>:int = 2 + 2            # No side effects
+    ReadState()<reads>:int = GetCurrentValue()     # Can read mutable state
+    UpdateGame()<transacts>:void = set Score += 10 # Can read, write, allocate
+<#
 -->
 <!-- 04 -->
 ```verse
@@ -106,6 +114,7 @@ PureCompute()<computes>:int = 2 + 2            # No side effects
 ReadState()<reads>:int = GetCurrentValue()     # Can read mutable state
 UpdateGame()<transacts>:void = set Score += 10 # Can read, write, allocate
 ```
+<!-- #> -->
 
 See [Effects](13_effects.md) for complete details on the effect system.
 
@@ -113,13 +122,24 @@ See [Effects](13_effects.md) for complete details on the effect system.
 
 Concurrency is a first-class feature with structured concurrency primitives that make concurrent programming safe and predictable.
 
-<!--verse
+<!--versetest
 TaskA()<suspends>:void={}
 TaskB()<suspends>:void={}
 TaskC():void={}
 FastPath()<suspends>:void={}
 SlowButReliablePath()<suspends>:void={}
 M()<suspends>:void=
+    # Run tasks concurrently and wait for all
+    sync:
+        TaskA()
+        TaskB()
+        TaskC()
+
+    # Race tasks and take first result
+    race:
+        FastPath()
+        SlowButReliablePath()
+<#
 -->
 <!-- 05 -->
 ```verse
@@ -134,6 +154,7 @@ race:
     FastPath()
     SlowButReliablePath()
 ```
+<!-- #> -->
 
 **Speculative Execution**
 
@@ -154,7 +175,22 @@ else:
 
 Verse provides first-class support for reactive programming through live variables that automatically recompute when their dependencies change, decreasing the need for manual event handling.
 
-<!--versetest-->
+<!--versetest
+Log(:string)<transacts>:void={}
+M()<transacts>:void =
+    var MaxHealth:int = 100
+    var Damage:int = 0
+    var live Health:int = MaxHealth - Damage
+
+    # Health automatically updates when dependencies change
+    set Damage = 20      # Health becomes 80
+    set MaxHealth = 150  # Health becomes 130
+
+    # Reactive constructs for event handling
+    when(Health < 25):
+        Log("Low health warning!")
+<#
+-->
 <!-- 07 -->
 ```verse
 var MaxHealth:int = 100
@@ -167,8 +203,9 @@ set MaxHealth = 150  # Health becomes 130
 
 # Reactive constructs for event handling
 when(Health < 25):
-    Print("Low health warning!")
+    Log("Low health warning!")
 ```
+<!-- #> -->
 
 Welcome to Verse—a language built not just for today's games, but for tomorrow's metaverse.
 
@@ -388,8 +425,31 @@ Verse has a set of naming conventions that make code readable and predictable. W
 
 Identifiers should be in PascalCase (CamelCase starting with uppercase):
 
-<!--verse
+<!--versetest
+player_character := class:
+    Name:string
+    Level:int
+inventory_item := struct:
+    ItemId:int
+    Quantity:int
+game_state := enum:
+    main_menu
+    in_game
+    paused
+    game_over
 PlayerDatabase(id:int)<decides>:player_character=player_character{Name:="", Level:=1}
+# Variables and constants use PascalCase
+PlayerHealth:int = 100
+MaxInventorySize:int = 50
+IsGameActive:logic = true
+
+# Functions use PascalCase
+CalculateDamage(Base:float, Multiplier:float):float =
+    Base * Multiplier
+
+GetPlayerName(Id:int)<decides>:string =
+    PlayerDatabase[Id].Name
+<#
 -->
 <!-- 09 -->
 ```verse
@@ -421,12 +481,11 @@ game_state := enum:
     paused
     game_over
 ```
+<!-- #> -->
 
 Generic type parameters use single lowercase letters or short descriptive names:
 
-<!--verse
-
--->
+<!--versetest-->
 <!-- 10 -->
 ```verse
 # Single letter for simple generics
@@ -435,6 +494,7 @@ Find(Array:[]t, Target:t where t:type):?int = false
 # Descriptive names for complex relationships
 Transform(Input:in_t, Processor:type{_(:in_t):out_t} where in_t:type, out_t:type):?out_t = false
 ```
+
 
 Module names follow the snake_case pattern, while paths use a hierarchical structure with forward slashes and PascalCase for path segments:
 
@@ -453,6 +513,19 @@ using { /Verse.org/Random }
 
 Class and struct fields use PascalCase, and methods follow the same PascalCase convention as functions:
 
+<!--versetest
+player := class:
+    Name:string          # PascalCase for fields
+    var Health:float= 0.0
+
+    # Methods use PascalCase like functions
+    TakeDamage(Amount:float):void =
+        set Health = Max(0.0, Health - Amount)
+
+    IsAlive():logic =
+        logic{Health > 0.0}
+<#
+-->
 <!-- 12 -->
 ```verse
 player := class:
@@ -466,6 +539,7 @@ player := class:
     IsAlive():logic =
         logic{Health > 0.0}
 ```
+<!-- #> -->
 
 ## Code Formatting
 
@@ -473,7 +547,32 @@ Verse code follows consistent formatting patterns to emphasize readability.
 
 Use four spaces to indent code blocks. The colon introduces a block, with subsequent lines indented:
 
-<!--NoCompile-->
+<!--versetest
+Condition()<decides><transacts>:void = {}
+DoSomething()<transacts>:void = {}
+DoSomethingElse()<transacts>:void = {}
+Inventory:[]int = array{1, 2, 3}
+ProcessItem(Item:int)<transacts>:void = {}
+UpdateDisplay()<transacts>:void = {}
+ImplementationHere()<transacts>:void = {}
+
+M()<transacts>:void =
+    if (Condition[]):
+        DoSomething()
+        DoSomethingElse()
+
+    for (Item : Inventory):
+        ProcessItem(Item)
+        UpdateDisplay()
+
+class_definition := class:
+    Field1:int
+    Field2:string
+
+    Method():void =
+        ImplementationHere()
+<#
+-->
 <!-- 13 -->
 ```verse
 if (Condition[]):
@@ -491,10 +590,19 @@ class_definition := class:
     Method():void =
         ImplementationHere()
 ```
+<!-- #> -->
 
 Complex expressions benefit from clear formatting that shows structure:
 
-<!--NoCompile-->
+<!--versetest
+player_type := struct{Health:int}
+GetPlayer()<transacts>:player_type = player_type{Health := 75}
+BaseDamage:float = 100.0
+LevelMultiplier:float = 1.5
+BonusPercentage:float = 10.0
+rarity_type := enum{common; uncommon; rare; epic; legendary}
+Rarity:rarity_type = rarity_type.rare
+-->
 <!-- 14 -->
 ```verse
 # Multi-line conditionals
@@ -513,16 +621,23 @@ FinalDamage :=
 
 # Pattern matching with aligned cases
 DamageMultiplier := case(Rarity):
-    common => 1.0
-    uncommon => 1.5
-    rare => 2.0
-    epic => 3.0
-    legendary => 5.0
+    rarity_type.common => 1.0
+    rarity_type.uncommon => 1.5
+    rarity_type.rare => 2.0
+    rarity_type.epic => 3.0
+    rarity_type.legendary => 5.0
 ```
 
 Functions follow a consistent pattern with effects and return types clearly specified:
 
-<!--NoCompile-->
+<!--versetest
+difficulty_level := enum{easy; medium; hard}
+ValidateAmount(Amount:int)<transacts><decides>:void = {}
+DeductBalance(Amount:int)<transacts>:void = {}
+RecordTransaction()<transacts>:void = {}
+GetBaseReward(Difficulty:difficulty_level)<decides>:?int = option{100}
+CalculateTimeBonus(CompletionTime:float):int = 50
+-->
 <!-- 15 -->
 ```verse
 # Simple pure function
@@ -530,7 +645,7 @@ Add(X:int, Y:int)<computes>:int = X + Y
 
 # Function with effects
 ProcessTransaction(Amount:int)<transacts><decides>:void =
-    ValidateAmount(Amount)
+    ValidateAmount[Amount]
     DeductBalance(Amount)
     RecordTransaction()
 
@@ -540,7 +655,7 @@ CalculateReward(
     Difficulty:difficulty_level,
     CompletionTime:float
 )<decides>:int =
-    BaseReward := GetBaseReward(Difficulty)?
+    BaseReward := GetBaseReward[Difficulty]?
     LevelBonus := PlayerLevel * 10
     TimeBonus := CalculateTimeBonus(CompletionTime)
     BaseReward + LevelBonus + TimeBonus
@@ -550,7 +665,7 @@ CalculateReward(
 
 Comments are ignored during execution but are valuable for understanding and maintaining code. Verse offers several styles of comments to suit different documentation needs. The simplest is the single-line comment, which begins with `#` and continues to the end of the line:
 
-<!--NoCompile-->
+<!--versetest-->
 <!-- 16 -->
 ```verse
 CalculateDamage := 100 * 1.5  # Apply critical hit multiplier
@@ -558,7 +673,11 @@ CalculateDamage := 100 * 1.5  # Apply critical hit multiplier
 
 When you need to document something within a line of code without breaking it up, inline block comments provide the perfect solution. These are enclosed between `<#` and `#>`:
 
-<!--NoCompile-->
+<!--versetest
+BaseValue:int = 100
+Multiplier:int = 2
+Bonus:int = 10
+-->
 <!-- 17 -->
 ```verse
 Result := BaseValue <# original amount #> * Multiplier <# scaling factor #> + Bonus
@@ -566,7 +685,15 @@ Result := BaseValue <# original amount #> * Multiplier <# scaling factor #> + Bo
 
 The same can be used to write multi-line block comments, making them ideal for explaining complex algorithms or providing detailed context:
 
-<!--NoCompile-->
+<!--versetest
+<# This function implements the quadratic damage falloff formula
+   used throughout the game. The falloff ensures that damage
+   decreases smoothly with distance, creating strategic positioning
+   choices for players. #>
+CalculateFalloffDamage(Distance:float, MaxDamage:float):float =
+    MaxDamage  # Implementation here
+<#
+-->
 <!-- 18 -->
 ```verse
 <# This function implements the quadratic damage falloff formula
@@ -576,10 +703,11 @@ The same can be used to write multi-line block comments, making them ideal for e
 CalculateFalloffDamage(Distance:float, MaxDamage:float):float =
     # Implementation here
 ```
+<!-- #> -->
 
 Block comments nest, which allows you to temporarily disable code that already contains comments without having to remove or modify existing documentation:
 
-<!--NoCompile-->
+<!--versetest-->
 <!-- 19 -->
 ```verse
 <# Temporarily disabled for testing
@@ -590,7 +718,9 @@ Block comments nest, which allows you to temporarily disable code that already c
 
 Indented comments begin with a `<#>` on its own line; everything indented by four spaces on subsequent lines becomes part of the comment:
 
-<!--NoCompile-->
+<!--versetest
+DoSomething():void = {}
+-->
 <!-- 20 -->
 ```verse
 <#>
@@ -607,7 +737,9 @@ Verse offers flexible syntax to accommodate different programming styles. The sa
 
 The braced style uses curly braces to delimit blocks, familiar from C-family languages:
 
-<!--NoCompile-->
+<!--versetest
+Score:int = 85
+-->
 <!-- 21 -->
 ```verse
 Result := if (Score > 90) {
@@ -621,7 +753,9 @@ Result := if (Score > 90) {
 
 The indented style uses colons and indentation to define structure, similar to Python:
 
-<!--NoCompile-->
+<!--versetest
+Score:int = 85
+-->
 <!-- 22 -->
 ```verse
 Result := if (Score > 90):
@@ -634,7 +768,9 @@ else:
 
 For simple expressions, the inline style keeps everything on one line:
 
-<!--NoCompile-->
+<!--versetest
+Score:int = 85
+-->
 <!-- 23 -->
 ```verse
 Result := if (Score > 90) then "excellent" else if (Score > 70) then "good" else "needs improvement"
@@ -642,15 +778,28 @@ Result := if (Score > 90) then "excellent" else if (Score > 70) then "good" else
 
 The dotted style uses a period to introduce the expression:
 
-<!--NoCompile-->
+<!--versetest
+Score:int = 85
+-->
 <!-- 24 -->
 ```verse
-Result := if (Score > 90). "excellent" else if (Score > 70). "good" else. "needs improvement" 
+Result := if (Score > 90). "excellent" else if (Score > 70). "good" else. "needs improvement"
 ```
 
 You can even mix styles when it makes sense:
 
-<!--NoCompile-->
+<!--versetest
+ComplexCondition()<transacts><decides>:void = {}
+AnotherCheck()<transacts><decides>:void = {}
+YetAnotherValidation()<transacts><decides>:void = {}
+M()<transacts>:void =
+    Result := if:
+        ComplexCondition[] and
+        AnotherCheck[] and
+        YetAnotherValidation[]
+    then { "condition met" } else { "condition not met" }
+<#
+-->
 <!-- 25 -->
 ```verse
 Result := if:
@@ -658,6 +807,8 @@ Result := if:
     AnotherCheck() and
     YetAnotherValidation()
 then { "condition met" } else { "condition not met" }
+```
+<!-- #> -->
 ```
 
 All these forms produce the same result. The choice between them is about readability and context. Use braces when working with existing brace-heavy code, indentation for cleaner vertical layouts, and inline forms for simple expressions. This flexibility lets you write code that reads naturally.
