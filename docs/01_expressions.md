@@ -18,10 +18,9 @@ provides lightweight data aggregation.
 
 Literals are source code representations of constant values. Verse provides literals for all its primitive types: integers, floats, characters, strings, booleans, and functions. Each literal type has specific syntax rules that determine what values can be expressed and how they're interpreted.
 
-<!--verse
+<!--versetest
 Point := struct{X:float, Y:float}
-M():void=
-    Condition:logic = true
+Condition:logic = true
 -->
 <!-- 01 -->
 ```verse
@@ -177,9 +176,8 @@ WithEscapes := "Line 1\nLine 2\tTabbed"
 
 String interpolation embeds expressions using curly braces:
 
-<!--verse
+<!--versetest
 Format(D:float, ?Decimals:int):string=""
-F():void=
 -->
 <!-- 10 -->
 ```verse
@@ -203,9 +201,7 @@ Formatted := "Distance: {Format(Distance, ?Decimals:=2)}"
 
 Multi-line strings can span multiple lines using interpolation braces for continuation:
 
-<!--verse
-F():void=
--->
+<!--versetest-->
 <!-- 11 -->
 ```verse
 LongMessage := "This is a multi-line {
@@ -257,6 +253,7 @@ Text1 := "abc<#comment#>def"     # Same as "abcdef"
 
 The `logic` type has two literal values:
 
+<!--versetest-->
 <!-- 15 -->
 ```verse
 IsReady := true
@@ -265,12 +262,11 @@ IsComplete := false
 
 Boolean values are used with the query operator `?` or in comparisons:
 
-<!--verse
+<!--versetest
 StartGame():void = {}
 ShowResults():void = {}
-M():void =
-    IsReady:logic = true
-    IsComplete:logic = false
+IsReady:logic = true
+IsComplete:logic = false
 -->
 <!-- 16 -->
 ```verse
@@ -281,14 +277,14 @@ if (IsComplete = true):
     ShowResults()
 ```
 
+
 The `logic{}` expression creates boolean values from failable expressions (see [Failure](08_failure.md) for details on failable expressions):
 
-<!--verse
+<!--versetest
 Operation()<computes><decides>:void = {}
 Optional:?int = option{1}
 X:int = 1
 Y:int = 1
-F2():void=
 -->
 <!-- 17 -->
 ```verse
@@ -360,15 +356,14 @@ evaluation order, and they create tuple expressions. A parenthesized
 expression simply evaluates to the value of its contents, allowing you
 to override the default operator precedence or improve readability:
 
-<!--verse
-M():void =
-    A:int = 1
-    B:int = 2
-    C:int = 3
-    X:int = 5
-    Y:int = 10
-    Positive:string = "positive"
-    Negative:string = "negative"
+<!--versetest
+A:int = 1
+B:int = 2
+C:int = 3
+X:int = 5
+Y:int = 10
+Positive:string = "positive"
+Negative:string = "negative"
 -->
 <!-- 23 -->
 ```verse
@@ -383,10 +378,9 @@ ceremony. The syntax distinguishes between parentheses used for
 grouping and those used for tuple construction through the presence of
 commas:
 
-<!--verse
-M():void =
-    X:int = 5
-    Y:int = 10
+<!--versetest
+X:int = 5
+Y:int = 10
 -->
 <!-- 24 -->
 ```verse
@@ -396,9 +390,7 @@ M():void =
 
 Tuples can be accessed using function-call syntax with a single integer argument:
 
-<!--verse
-M():void =
--->
+<!--versetest-->
 <!-- 25 -->
 ```verse
 point := (10, 20)
@@ -408,12 +400,17 @@ y := point(1)     # Access second element
 
 Tuple types are written:
 
-<!--NoCompile-->
+<!--versetest
+GetPoint():tuple(int,int) = (10, 20)
+GetData():tuple(int,string,logic) = (42, "hello", true)
+<#
+-->
 <!-- 26 -->
 ```verse
 tuple(int,int)
 tuple(int,string,logic)
 ```
+<!-- #> -->
 
 While the type of an unary element can be accepted by the compiler,
 `tuple(int)`, there is currently no syntax to write a tuple of one element.
@@ -442,18 +439,21 @@ Point.X                 # Access struct field
 
 Member access can be chained, creating paths through nested structures:
 
-<!--verse
+<!--versetest
 item := class{Name:string = "Sword"}
 inventory := class{Items:[]item = array{item{}}}
 player_type := class{Inventory:inventory = inventory{}}
 game := class{Players:[]player_type = array{player_type{}}}
 M()<decides>:void =
     Game:game = game{}
+    Game.Players[0].Inventory.Items[0].Name
+<#
 -->
 <!-- 28 -->
 ```verse
 Game.Players[0].Inventory.Items[0].Name
 ```
+<!-- #> -->
 
 ### Computed Access
 
@@ -461,7 +461,7 @@ Square brackets provide computed access to elements, whether for
 arrays, maps, or other indexable structures. The expression within
 brackets is evaluated to determine which element to access:
 
-<!--verse
+<!--versetest
 ComputeIndex():int = 0
 M()<decides>:void =
     Array:[]int = array{1, 2, 3}
@@ -470,6 +470,11 @@ M()<decides>:void =
     Row:int = 0
     Col:int = 1
     Data:[]int = array{10, 20, 30}
+    Array[0]
+    Map["key"]
+    Matrix[Row][Col]
+    Data[ComputeIndex()]
+<#
 -->
 <!-- 29 -->
 ```verse
@@ -478,6 +483,7 @@ Map["key"]              # Map lookup
 Matrix[Row][Col]        # Nested indexing
 Data[ComputeIndex()]    # Dynamic index computation
 ```
+<!-- #> -->
 
 The function call syntax with square brackets, `Func[]` is equivalent
 to `Func()` for functions that may fail. Array indexing can fail, if
@@ -489,7 +495,7 @@ Function calls use parentheses with comma-separated arguments. The
 language treats function calls as expressions that evaluate to the
 function's return value:
 
-<!--verse
+<!--versetest
 Sqrt(X:int):float = 4.0
 MaxOf(A:int, B:int):int = if (A > B) then A else B
 Initialize():void = {}
@@ -499,14 +505,20 @@ Process(X:int, Y:int)<decides>:void = {}
 M()<decides>:void =
     A:int = 5
     B:int = 10
+    Sqrt(16)
+    MaxOf(A, B)
+    Initialize()
+    Process[GetData(), Transform()]
+<#
 -->
 <!-- 30 -->
 ```verse
 Sqrt(16)                        # Single argument
-MaxOf(A, B)                       # Multiple arguments
+MaxOf(A, B)                     # Multiple arguments
 Initialize()                    # No arguments
 Process[GetData(), Transform()] # Nested calls, outer call may fail
 ```
+<!-- #> -->
 
 ## Object Construction
 
@@ -583,11 +595,10 @@ expression. Verse supports multiple syntactic forms for
 if-expressions, including parenthesized conditions and indented
 bodies:
 
-<!--verse
-M():void =
-    Condition:logic = true
-    Value1:int = 42
-    Value2:int = 100
+<!--versetest
+Condition:logic = true
+Value1:int = 42
+Value2:int = 100
 -->
 <!-- 34 -->
 ```verse
@@ -608,21 +619,27 @@ else:
 For expressions iterate over collections and produce values. The basic
 form iterates over elements:
 
-<!--verse
+<!--versetest
 Process(i:int):void={}
 F(Collection:[]int):void=
+    for (Item : Collection) { Process(Item) }
+<#
 -->
 <!-- 35 -->
 ```verse
 for (Item : Collection) { Process(Item) }
 ```
+<!-- #> -->
 
 An extended form provides access to both index and item--in the case
 of a `Map`, indices are not limited to integers:
 
-<!--verse
-Process(i:int):void={}
+<!--versetest
 F(Collection:[]int):void=
+    for (Index -> Item : Collection) {
+        Print("Item at {Index} is {Item}")
+    }
+<#
 -->
 <!-- 36 -->
 ```verse
@@ -630,6 +647,7 @@ for (Index -> Item : Collection) {
     Print("Item at {Index} is {Item}")
 }
 ```
+<!-- #> -->
 
 Since for expressions are themseleves expressions, they produce array
 values and compose with other expressions. The body of a for
@@ -641,11 +659,17 @@ expression as a whole has a value determined by these evaluations.
 Loop expressions provide indefinite iteration, continuing until
 explicitly terminated through failure or other control flow:
 
-<!--verse
+<!--versetest
 GetNext():int=1
 Done(i:int)<computes><decides>:void={}
 Process(i:int):void={}
 F():void=
+    loop {
+        Value := GetNext()
+        if (Done[Value]) then break
+        Process(Value)
+    }
+<#
 -->
 <!-- 37 -->
 ```verse
@@ -655,6 +679,7 @@ loop {
     Process(Value)
 }
 ```
+<!-- #> -->
 
 The loop construct can use indented syntax for clarity.
 
@@ -664,13 +689,20 @@ The loop construct can use indented syntax for clarity.
 
 Case expressions provide multi-way branching based on value matching:
 
-<!--verse
+<!--versetest
 color := enum:
     Red
     Yellow
     Green
     Other
 F(Color:color): void=
+    Description := case(Color) {
+        color.Red => "Danger",
+        color.Yellow => "Warning",
+        color.Green => "Safe",
+        _ => "Unknown"
+    }
+<#
 -->
 <!-- 38 -->
 ```verse
@@ -681,6 +713,7 @@ Description := case(Color) {
     _ => "Unknown"
 }
 ```
+<!-- #> -->
 
 The `_` pattern serves as a catch-all, ensuring the case expression is
 exhaustive. Case expressions evaluate to the value of the matched
@@ -712,17 +745,21 @@ assignments while maintaining clarity about evaluation order.
 
 Compound assignments provide shorthand for common update patterns:
 
-<!--verse
+<!--versetest
 F()<transacts>:void=
     var Counter :int = 0
     var Total :int = 0
     Factor:=2
+    set Counter += 1
+    set Total *= Factor
+<#
 -->
 <!-- 40 -->
 ```verse
 set Counter += 1      # Equivalent to: set Counter = Counter + 1
 set Total *= Factor   # Equivalent to: set Total = Total * Factor
 ```
+<!-- #> -->
 
 ### Range Expressions
 
@@ -730,13 +767,15 @@ The range operator (`..`) creates integer ranges for iteration in
 `for` loops. Ranges are **inclusive on both ends** and can only appear
 directly in for loop iteration clauses:
 
-<!--verse
+<!--versetest
 End()<computes>:int=10
+Count:int=10
+Start:int=1
+Process(I:int):void={}
 F():void=
     for (I := 1..10):
         for (J := I..(I+10)):
             for (K:= J..End()) {}
-
 <#
 -->
 <!-- 41 -->
@@ -746,9 +785,7 @@ Start..End        # Variable-defined range
 for (I := 0..Count):  # Must use := syntax, not :
     Process(I)
 ```
-<!--verse
-#>
--->
+<!-- #> -->
 
 Ranges are not first-class values. They cannot be stored in variables
 or used outside of `for` loop iteration clauses. See the [Range
@@ -762,7 +799,7 @@ evaluation. Their result is either success or failure. Verse uses
 keyword operators (`and`, `or`, `not`) rather than symbols, improving
 readability:
 
-<!--verse
+<!--versetest
 ProcessQuadrant()<computes>:void = {}
 Validated:logic= true
 UseDefault()<computes><decides>:void = {}
@@ -771,6 +808,10 @@ Wait()<computes>:void = {}
 M()<transacts>:void =
     X:int = 5
     Y:int = 10
+    if (X > 0 and Y > 0) then ProcessQuadrant()
+    Result := logic{Validated? or UseDefault[]}
+    if (not IsReady[]) then Wait()
+<#
 -->
 <!-- 42 -->
 ```verse
@@ -778,6 +819,7 @@ if (X > 0 and Y > 0) then ProcessQuadrant()
 Result := logic{Validated? or UseDefault[]}
 if (not IsReady[]) then Wait()
 ```
+<!-- #> -->
 
 The precedence ensures that `and` binds tighter than `or`, matching
 mathematical logic conventions, the `logic{}` expression turns succes
@@ -795,9 +837,14 @@ Condition := logic{ExpA and ExpB or ExpC and ExpD}
 Comparison operators also either succeed or fail and can be chained
 for range checking:
 
-<!--verse
+<!--versetest
 InRange():void={}
-F(Value:int, X:int, Minimum:int, Maximum:int, A:int, B:int):void=
+Value:int = 50
+X:int = 75
+Minimum:int = 0
+Maximum:int = 100
+A:int = 5
+B:int = 10
 -->
 <!-- 44 -->
 ```verse
@@ -817,11 +864,10 @@ Arithmetic operations follow standard mathematical precedence, with
 multiplication and division binding tighter than addition and
 subtraction:
 
-<!--verse
-F()<decides>:void=
-    A:=1
-    B:=2
-    C:=3
+<!--versetest
+A:int = 1
+B:int = 2
+C:int = 3
 -->
 <!-- 45 -->
 ```verse
@@ -831,12 +877,11 @@ Average := (A + B) / 2   # Parentheses override precedence
 
 Unary operators have the highest precedence among arithmetic operations:
 
-<!--verse
-F():void=
-    Flag:=true
-    Value:=1
-    X:=1
-    Y:=2
+<!--versetest
+Flag:logic = true
+Value:int = 1
+X:int = 1
+Y:int = 2
 -->
 <!-- 46 -->
 ```verse
@@ -851,13 +896,26 @@ While Verse emphasizes immutability, practical programming sometimes
 requires mutation. Set expressions provide mutation of variables and
 fields:
 
-<!--verse
+<!--versetest
 c := class { var Field:int = 0 }
-F( Element:int, Value:int, Index:int, Key:string, MappedValue:string)<transacts><decides>:void=
-    var Obj:c = c{}
-    var Arr:[]int = array{1}
-    var Map:[string]string = map{ "hi" => "hp" }
-    var X :int=0
+GetObj()<transacts>:c = c{}
+GetArr()<transacts>:[]int = array{1}
+GetMap()<transacts>:[string]string = map{ "hi" => "hp" }
+Element:int = 5
+Value:int = 100
+Index:int = 0
+Key:string = "key"
+MappedValue:string = "value"
+F()<transacts><decides>:void=
+    var X:int = 0
+    var Obj:c = GetObj()
+    var Arr:[]int = GetArr()
+    var Map:[string]string = GetMap()
+    set X = 10
+    set Obj.Field = Value
+    set Arr[Index] = Element
+    set Map[Key] = MappedValue
+<#
 -->
 <!-- 47 -->
 ```verse
@@ -866,6 +924,8 @@ set Obj.Field = Value         # Field assignment
 set Arr[Index] = Element      # Array element assignment
 set Map[Key] = MappedValue    # Map entry assignment
 ```
+<!-- #> -->
+```
 
 Set expressions are themselves expressions, though they're typically
 used for their side effects rather than their value. The left-hand
@@ -873,9 +933,9 @@ side must be a valid LValue—something that can be assigned to.
 
 Complex LValues are supported, allowing updates deep within data structures:
 
-<!--verse
+<!--versetest
 item := class{Name:string = "Item"}
-inventory := class{var Items:[]item = array{}}
+inventory := class{var Items:[]item = array{item{}}}
 player := class{var Inventory:inventory = inventory{}}
 game := class{var Players:[]player = array{player{}}}
 M()<transacts><decides>:void =
@@ -883,10 +943,14 @@ M()<transacts><decides>:void =
     CurrentPlayer:int = 0
     Slot:int = 0
     NewItem:item = item{}
+    set Game.Players[CurrentPlayer].Inventory.Items[Slot] = NewItem
+<#
 -->
 <!-- 48 -->
 ```verse
 set Game.Players[CurrentPlayer].Inventory.Items[Slot] = NewItem
+```
+<!-- #> -->
 ```
 
 ## Semicolons vs Commas
@@ -941,10 +1005,9 @@ GetTuple():tuple(float, int) = (1.0, 2)    # Returns (1.0, 2)
 Semicolons in argument position create a *sequence that executes
 before the call*, with only the last value passed as the argument:
 
-<!--verse
+<!--versetest
 Process(X:int):void={}
 LogEvent(S:string):int=1
-F():void=
 -->
 <!-- 53 -->
 ```verse
@@ -969,15 +1032,18 @@ Result = 30
 
 Commas separate distinct arguments in the standard way:
 
-<!--verse
+<!--versetest
 Add(A:int, B:int):int = A + B
 F():void=
+    Sum := Add(10, 20)
+<#
 -->
 <!-- 55 -->
 ```verse
 Sum := Add(10, 20)                # Two separate arguments
 # Sum = 30
 ```
+<!-- #> -->
 
 Semicolons are *not allowed* in parameter lists - you must use commas:
 
@@ -1015,9 +1081,7 @@ Result2 := logic{true?, true?}    # Also valid
 
 In `option{}` constructor - follows the standard sequence vs tuple rule:
 
-<!--verse
-F()<decides>:void=
--->
+<!--versetest-->
 <!-- 59 -->
 ```verse
 # Semicolon: sequence, wraps last value
