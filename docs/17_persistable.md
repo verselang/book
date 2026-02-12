@@ -56,10 +56,19 @@ specifier with classes, structs, and enums.
 
 Classes must meet specific requirements to be persistable:
 
-<!--verse
+<!--versetest
+m := module{
 player_class := enum<persistable>{
     Villager
 }
+player_profile_data := class<final><persistable>:
+    Version:int = 1
+    Class:player_class = player_class.Villager
+    XP:int = 0
+    Rank:int = 0
+    CompletedQuestCount:int = 0
+}
+<#
 -->
 <!-- 02 -->
 ```verse
@@ -70,6 +79,7 @@ player_profile_data := class<final><persistable>:
     Rank:int = 0
     CompletedQuestCount:int = 0
 ```
+<!-- #> -->
 
 Requirements for persistable classes:
 
@@ -85,12 +95,21 @@ Requirements for persistable classes:
 Structs are ideal for simple data structures that won't change after
 publication:
 
+<!--versetest
+m := module{
+coordinates := struct<persistable>:
+    X:float = 0.0
+    Y:float = 0.0
+}
+<#
+-->
 <!-- 03 -->
 ```verse
 coordinates := struct<persistable>:
     X:float = 0.0
     Y:float = 0.0
 ```
+<!-- #> -->
 
 Requirements for persistable structs:
 
@@ -102,6 +121,19 @@ Requirements for persistable structs:
 
 Enums represent a fixed set of named values:
 
+<!--versetest
+m := module{
+day := enum<persistable>:
+    Monday
+    Tuesday
+    Wednesday
+    Thursday
+    Friday
+    Saturday
+    Sunday
+}
+<#
+-->
 <!-- 04 -->
 ```verse
 day := enum<persistable>:
@@ -113,6 +145,7 @@ day := enum<persistable>:
     Saturday
     Sunday
 ```
+<!-- #> -->
 
 Important notes:
 
@@ -166,7 +199,7 @@ GetOrCreatePlayerStats(Player : player) : player_stats =
         if (set PlayerData[Player] = NewStats):
             NewStats
         else:
-            player_stats{}  # Fallback
+            player_stats{}
 <#
 -->
 <!-- 06 -->

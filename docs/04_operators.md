@@ -178,8 +178,8 @@ Comparisons between different types generally fail:
 
 <!--versetest
 assert:
-    not (0 = 0.0)  # Fails: int vs float
-    not ("5" = 5)  # Fails: string vs int
+    not (0 = 0.0)
+    not ("5" = 5)
 <#
 -->
 <!-- 04 -->
@@ -307,7 +307,7 @@ AutoTyped := 42  # Inferred as int
 
 The `set =` operator updates variable values:
 
-<!--verse
+<!--versetest
 vector3:=struct{X:float, Y:float, Z:float}
 -->
 <!-- 10 -->
@@ -329,10 +329,12 @@ The square bracket operator is used for multiple purposes in Verse:
 2. **Function calls** - Call functions which may fail
 3. **Computed member access** - Access object members dynamically
 
-<!--verse
+<!--versetest
 MyFunction1(X:int, Y:int)<decides>:void={}
 MyFunction2(?X:int=0, ?Y:int=0)<decides>:void={}
-F(Arg1:int,Arg2:int)<decides>:void=
+Arg1:int = 0
+Arg2:int = 0
+<#
 -->
 <!-- 11 -->
 ```verse
@@ -356,6 +358,7 @@ Result1 := MyFunction1[Arg1, Arg2]          # Can fail
 Result2 := MyFunction2[?X:=Arg1, ?Y:=Arg2]  # Named arguments
 EmptyCall := MyFunction2[]                  # and optional values
 ```
+<!-- #> -->
 
 ### Member Access
 

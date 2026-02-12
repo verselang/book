@@ -21,6 +21,7 @@ Functions can accept any number of parameters, from none at all to as
 many as needed. The syntax follows a straightforward pattern where
 each parameter has an identifier and a type, separated by commas:
 
+<!--versetest-->
 <!-- 01 -->
 ```verse
 ProcessData(Name:string, Age:int, Score:float):string =
@@ -341,6 +342,7 @@ F(?X:int):int = X  # OK - different required parameter set
 parameter types make signatures distinct, even if named parameters are
 the same:
 
+<!--versetest-->
 <!-- 25 -->
 ```verse
 # Valid: Different positional parameter types
@@ -512,6 +514,7 @@ doesn't apply.
 Refined types with `where` clauses are not allowed in destructured
 tuple parameters:
 
+<!--versetest-->
 <!-- 35 -->
 ```verse
 # ERROR 3624: Refined types not supported in tuple destructuring
@@ -680,14 +683,13 @@ map{1=>"a", 2=>"b", 3=>"c"}.Keys()  # Returns array{1, 2, 3}
 
 Extending classes:
 
-<!--verse-->
+<!--NoCompile-->
 <!--246-->
 ```verse
 player := class:
     Name:string
     var Score:int
 ```
-<!-- -->
 
 <!--versetest
 player := class:
@@ -709,7 +711,6 @@ default parameters:
 
 
 <!--versetest
-#(Text:string).Pad(?Left:int = 0, ?Right:int = 0):string = Text
 <#
 -->
 <!-- 47 -->
@@ -775,6 +776,12 @@ X := 5.Double()
 **Conflicts with Class Methods:** Extension methods cannot have the
 same signature as methods defined directly in classes or interfaces:
 
+<!--versetest
+player := class:
+    Health():int = 100
+
+<#
+-->
 <!-- 51 -->
 ```verse
 player := class:
@@ -783,6 +790,7 @@ player := class:
 # Invalid: Conflicts with class method
 # (P:player).Health():int = 50  # ERROR
 ```
+<!-- #> -->
 
 This prevents ambiguity and ensures that class methods always take precedence.
 
@@ -816,14 +824,14 @@ game_manager := class:
     Multiplier:int = 10
 
     (Score:int).ScaledScore()<computes>:int =
-        Score * Multiplier  # Accesses class field
+        Score * Multiplier
 
     ProcessScore(Value:int)<computes>:int =
-        Value.ScaledScore()  # Uses extension method
+        Value.ScaledScore()
 
 M()<transacts>:void={
 GM := game_manager{}
-GM.ProcessScore(5)  # Returns 50
+GM.ProcessScore(5)
 }
 <# 
 -->
@@ -848,7 +856,7 @@ reference the enclosing class's members.
 
 **Tuple Argument Conversion:** When an extension method has multiple parameters, you can pass a tuple to provide all arguments at once:
 
-<!--verse
+<!--versetest
 point := class<allocates>:
     X:int
     Y:int
@@ -859,8 +867,8 @@ point := class<allocates>:
 M()<transacts>:void={
 Origin := point{X := 0, Y := 0}
 Delta := (5, 10)
-NewPoint := Origin.Translate(Delta)  # Tuple expands to two arguments
-} <#
+NewPoint := Origin.Translate(Delta)
+}
 -->
 <!-- 54 -->
 ```verse
@@ -903,7 +911,7 @@ Function types follow specific subtyping rules based on *variance*:
 - *Returns are covariant*: A function returning more specific types
   can substitute for one returning general types.
 
-<!--verse-->
+<!--NoCompile-->
 <!--264-->
 ```verse
 animal := class:
@@ -912,7 +920,6 @@ animal := class:
 dog := class(animal):
     Breed:string
 ```
-<!-- -->
 
 <!--versetest
 animal := class:
@@ -1031,7 +1038,7 @@ Process(Double, 5)  # Returns 10
 
 The `type{}` construct *exclusively declares function type signatures*. It cannot be used for general type expressions or to extract types from values:
 
-<!--verse
+<!--versetest
 m:= module:
 -->
 <!-- 73 -->
@@ -1471,6 +1478,7 @@ Type constraints restrict which types can be used with type parameters, enabling
 
 The most permissive constraint accepts any type:
 
+<!--versetest-->
 <!-- 94 -->
 ```verse
 # Works with absolutely any type
@@ -1479,6 +1487,18 @@ Store(Value:t where t:type):t = Value
 
 Restricts to types that are subtypes of a specified type:
 
+<!--versetest
+vehicle := class:
+    Speed:float = 0.0
+
+car := class(vehicle):
+    NumDoors:int = 4
+
+ProcessVehicle(V:t where t:subtype(vehicle)):t =
+    Print("Speed: {V.Speed}")
+    V
+<#
+-->
 <!-- 95 -->
 ```verse
 vehicle := class:
@@ -1493,7 +1513,7 @@ ProcessVehicle(V:t where t:subtype(vehicle)):t =
     Print("Speed: {V.Speed}")
     V
 ```
-<!-- -->
+<!-- #> -->
 
 <!--versetest
 vehicle := class:
@@ -1503,7 +1523,6 @@ car := class(vehicle):
     NumDoors:int = 4
 
 ProcessVehicle(V:t where t:subtype(vehicle)):t =
-    # Can access Speed because we know V is a vehicle
     Print("Speed: {V.Speed}")
     V
 -->
@@ -1516,16 +1535,14 @@ ProcessVehicle(car{})          # t = car (subtype of vehicle)
 
 The function returns type `t`, not the base type. This preserves the specific type:
 
-<!--verse
+<!--versetest
 vehicle := class:
     Speed:float = 0.0
 
 car := class(vehicle):
     NumDoors:int = 4
 
-# Only accepts vehicle or its subtypes
 ProcessVehicle(V:t where t:subtype(vehicle))<transacts>:t =
-    # Can access Speed because we know V is a vehicle
     Print("Speed: {V.Speed}")
     V
 
@@ -1541,6 +1558,7 @@ Result.NumDoors                  # Can access car-specific fields
 
 The `subtype(comparable)` constraint enables equality comparisons:
 
+<!--versetest-->
 <!-- 97 -->
 ```verse
 # Can use = and <> operators on t
@@ -1551,6 +1569,7 @@ FindInArray(Items:[]t, Target:t where t:subtype(comparable))<decides>:[]int =
 
 Type parameters can reference each other in constraints:
 
+<!--versetest-->
 <!-- 98 -->
 ```verse
 # u must be a subtype of t
@@ -1562,6 +1581,15 @@ Convert(Base:t, Derived:u where t:type, u:subtype(t)):t = Base
 
 When using subtype constraints, you can access members that exist on the base type:
 
+<!--versetest
+entity := class:
+    Name:string = "Entity"
+    Health:int = 100
+
+player := class(entity):
+    Score:int = 0
+<#
+-->
 <!-- 99 -->
 ```verse
 entity := class:
@@ -1572,7 +1600,7 @@ player := class(entity):
     Score:int = 0
 
 ```
-<!-- -->
+<!-- #> -->
 
 <!--versetest
 entity := class:
@@ -1595,6 +1623,14 @@ Info := GetInfo(P)                   # Returns (player instance, "Alice", 100)
 
 Method calls work too:
 
+<!--versetest
+entity := class:
+    GetStatus():string = "Active"
+
+CheckStatus(E:t where t:subtype(entity)):string =
+    E.GetStatus()
+<#
+-->
 <!-- 100 -->
 ```verse
 entity := class:
@@ -1604,6 +1640,7 @@ entity := class:
 CheckStatus(E:t where t:subtype(entity)):string =
     E.GetStatus()  # Method call through type parameter
 ```
+<!-- #> -->
 
 ### Polarity and Variance
 
@@ -1623,6 +1660,7 @@ Type parameters must be used consistently according to variance rules. This ensu
 **The polarity check:** Verse validates that type parameters appear
 only in positions compatible with their intended use:
 
+<!--versetest-->
 <!-- 101 -->
 ```verse
 # Valid: t appears covariantly (return type)
@@ -1657,6 +1695,7 @@ such a type from a parametric function is unsafe.
 
 **Map polarity:** Maps are contravariant in keys and covariant in values:
 
+<!--versetest-->
 <!-- 103 -->
 ```verse
 # Valid: contravariant key, covariant value
@@ -1752,7 +1791,14 @@ Effects alone don't create distinctness - you need different parameter types.
 
 Subclasses can add new overloads to methods:
 
-<!--verse-->
+<!--versetest
+C0 := class:
+    f(X:int):int = X
+
+C1 := class(C0):
+    f(X:float):float = X
+<#
+-->
 <!-- 108 -->
 ```verse
 C0 := class:
@@ -1762,14 +1808,13 @@ C1 := class(C0):
     # Add new overload for float
     f(X:float):float = X
 ```
-<!-- -->
+<!-- #> -->
 
 <!--versetest
 C0 := class:
     f(X:int):int = X
 
 C1 := class(C0):
-    # Add new overload for float
     f(X:float):float = X
 -->
 <!-- 208 -->
@@ -1779,13 +1824,24 @@ C1{}.f(5)     # OK - inherited int overload
 C1{}.f(5.0)   # OK - new float overload
 ```
 
-**Important:** When a subclass defines a method that shares a name
+When a subclass defines a method that shares a name
 with a parent method, it must either:
 
 1. Provide a **distinct parameter type** (different from all parent overloads)
 2. **Override exactly one** parent overload using `<override>`
 
-<!--NoCompile-->
+<!--versetest
+C := class<allocates>{}
+D := class<allocates>(C){}
+
+E := class<allocates>:
+    f(c:C):C = c
+    f(e:E):E = e
+
+F := class<allocates>(E):
+    f<override>(c:C):D = D{}
+<#
+-->
 <!-- 109 -->
 ```verse
 C := class{}
@@ -1800,15 +1856,26 @@ E := class:
 F := class(E):
     f<override>(c:C):D = D{}
 
-# ERROR 3532: D is subtype of C, overlaps but doesn't override
+# ERROR: D is subtype of C, overlaps but doesn't override
 # G := class(E):
 #     f(d:D):D = d  # ERROR - ambiguous with f(c:C)
 ```
+<!-- #> -->
 
 ### Interfaces with Overloaded Methods
 
 Interfaces can declare overloaded methods:
 
+<!--versetest
+formatter := interface:
+    Format(X:int):string = "{X}"
+    Format(X:float):string = "{X}"
+
+entity := class(formatter):
+    Format<override>(X:int):string = "Entity-{X}"
+    Format<override>(X:float):string = "Entity-{X}"
+<#
+-->
 <!-- 110 -->
 ```verse
 formatter := interface:
@@ -1819,6 +1886,7 @@ entity := class(formatter):
     Format<override>(X:int):string = "Entity-{X}"
     Format<override>(X:float):string = "Entity-{X}"
 ```
+<!-- #> -->
 
 ### Restrictions
 
@@ -1855,7 +1923,7 @@ assert_semantic_error(3532):
 -->
 <!-- 112 -->
 ```verse
-# ERROR 3532: Cannot overload with variable
+# ERROR: Cannot overload with variable
 # f:int = 0
 # f():void = {}
 ```
@@ -1877,7 +1945,15 @@ Class names cannot be overloaded:
 
 The bottom type (from `return` without a value) cannot be used for overload resolution:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3518):
+    F(X:int):int = X
+    F(X:float):float = X
+    G():void =
+        F(@ignore_unreachable return)
+        0
+<#
+-->
 <!-- 114 -->
 ```verse
 # ERROR 3518: Cannot determine which overload
@@ -1888,6 +1964,7 @@ F(X:float):float = X
 #     F(@ignore_unreachable return)  # ERROR - which F?
 #     0
 ```
+<!-- #> -->
 
 ### Overloading with `<suspends>`
 
@@ -2227,6 +2304,13 @@ F(:[int]a, :a):void = {}
 
 **Tuples and maps with non-`int` key ARE distinct:**
 
+<!--versetest
+a := class{}
+
+F(:tuple(a), :a):void = {}
+F(:[logic]a, :a):void = {}
+<#
+-->
 <!-- 133 -->
 ```verse
 a := class{}
@@ -2235,6 +2319,7 @@ a := class{}
 F(:tuple(a), :a):void = {}
 F(:[logic]a, :a):void = {}  # OK
 ```
+<!-- #> -->
 
 **Singleton tuples and optional for `int` are not distinct:**
 
@@ -2257,10 +2342,11 @@ F(:?int, :a):void = {}
 
 **Singleton tuples and optional for non-`int` ARE distinct:**
 
+<!--versetest
+a := class{}
+-->
 <!-- 135 -->
 ```verse
-a := class{}
-
 # Valid: Distinct types
 F(:tuple(a), :a):void = {}
 F(:?a, :a):void = {}  # OK
@@ -2271,6 +2357,7 @@ F(:?a, :a):void = {}  # OK
 Publishing a function is a promise of backwards compatibility between
 the function and its clients. Consider this function:
 
+<!--versetest-->
 <!-- 139 -->
 ```verse
 F1<public>(X:int):int = X + 1
@@ -2286,6 +2373,7 @@ maintains its signature.
 Functions that do not have the `<reads>` effect are less flexible. Consider
 this function:
 
+<!--versetest-->
 <!-- 140 -->
 ```verse
 F2<public>(X:int)<computes>:int = X + 1

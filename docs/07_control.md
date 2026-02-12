@@ -44,18 +44,41 @@ Verse has a flexible syntax with with three equivalent formats for
 writing blocks. The spaced format is the most common, using a colon to
 introduce the block and indentation to show structure:
 
-<!--NoCompile-->
+<!--versetest
+IsPlayerReady()<decides><transacts>:void = {}
+StartMatch()<transacts>:void = {}
+BeginCountdown()<transacts>:void = {}
+
+M()<transacts>:void =
+    if (IsPlayerReady[]):
+        StartMatch()
+        BeginCountdown()
+<#
+-->
 <!-- 02 -->
 ```verse
 if (IsPlayerReady[]):
     StartMatch()
     BeginCountdown()
 ```
+<!-- #> -->
+```
 
 The multi-line braced format offers familiarity for programmers coming
 from C-style languages:
 
-<!--NoCompile-->
+<!--versetest
+IsPlayerReady()<decides><transacts>:void = {}
+StartMatch()<transacts>:void = {}
+BeginCountdown()<transacts>:void = {}
+
+M()<transacts>:void =
+    if (IsPlayerReady[]) {
+        StartMatch()
+        BeginCountdown()
+    }
+<#
+-->
 <!-- 03 -->
 ```verse
 if (IsPlayerReady[]) {
@@ -63,18 +86,19 @@ if (IsPlayerReady[]) {
     BeginCountdown()
 }
 ```
+<!-- #> -->
+```
 
 For simple operations, the single-line dot format keeps code concise:
 
-<!--verse
+<!--versetest-->
+<!-- 04 -->
+```verse
 HasPowerup()<computes><decides>:void={}
 ApplyBoost():void={}
 IncrementCounter():void={}
 F():void=
--->
-<!-- 04 -->
-```verse
-if (HasPowerup[]). ApplyBoost(); IncrementCounter()
+    if (HasPowerup[]). ApplyBoost(); IncrementCounter()
 ```
 
 Since everything is an expression, blocks themselves have values. The
@@ -83,7 +107,20 @@ it. This enables elegant patterns where complex computations can be
 encapsulated in blocks that seamlessly integrate with surrounding
 code:
 
-<!--NoCompile-->
+<!--versetest
+CalculateScore()<computes>:int = 100
+CalculateBonus(Time:float)<computes>:int = 50
+CompletionTime:float = 10.0
+AccuracyValue:float = 0.95
+
+M()<transacts><decides>:void =
+    FinalScore := block:
+        Base := CalculateScore()
+        Bonus := CalculateBonus(CompletionTime)
+        Accuracy := Floor[AccuracyValue * 100.0]
+        Base + Bonus + Accuracy
+<#
+-->
 <!-- 05 -->
 ```verse
 FinalScore := block:              # The variable hass the block's value
@@ -91,6 +128,8 @@ FinalScore := block:              # The variable hass the block's value
     Bonus := CalculateBonus(CompletionTime)
     Accuracy := Floor(Accuracy * 100.0)
     Base + Bonus + Accuracy       # This becomes the block's value
+```
+<!-- #> -->
 ```
 
 
@@ -100,7 +139,7 @@ The `if` expression uses success and failure to drive decisions (see
 [Failure](08_failure.md) for details). When an expression in the
 condition succeeds, the corresponding branch executes:
 
-<!--verse
+<!--versetest
 player := class:
    CanJump()<computes><decides>:void={}
    Jump()<computes>:void={}
@@ -112,7 +151,7 @@ weapon:=class<computes>{
 }
 ConsumeAmmo():void={}
 PlayJumpSound():void={}
-
+<#
 -->
 <!-- 07 -->
 ```verse
@@ -127,6 +166,8 @@ HandlePlayerAction(Player:player, Action:string):void =
         # Default action
         Player.Idle()
 ```
+<!-- #> -->
+```
 
 This approach allows you to chain conditions that might fail without
 explicit error handling at each step.
@@ -134,6 +175,7 @@ explicit error handling at each step.
 An alternative syntax uses `then:` and `else:` keywords to explicitly
 label branches:
 
+<!--versetest-->
 <!-- 08 -->
 ```verse
 ProcessValue(Value:int):string =
@@ -144,6 +186,8 @@ ProcessValue(Value:int):string =
         "Valid"
     else:
         "Out of range"
+
+ProcessValue(50) = "Valid"
 ```
 
 This syntax can improve readability when you have multiple conditions
@@ -250,6 +294,7 @@ expression.
 When you need to make decisions based on multiple possible values, the
 `case` expression provides clear, readable branching:
 
+<!--versetest-->
 <!-- 15 -->
 ```verse
 GetWeaponDamage(WeaponType:string):float =
@@ -259,6 +304,8 @@ GetWeaponDamage(WeaponType:string):float =
         "staff"  => 40.0
         "dagger" => 25.0
         _        => 10.0  # Default damage for unknown weapons
+
+GetWeaponDamage("sword") = 50.0
 ```
 
 The `case` expression is used when you have discrete values to match
@@ -282,14 +329,23 @@ semantics (classes are references), or have structural complexity
 for exhaustiveness.  For closed enums where all values are known, the
 compiler verifies you've handled all cases:
 
-<!-- 17 -->
-```verse
+<!--versetest
 direction := enum:
     North
     South
     East
     West
 
+GetVector(Dir:direction):tuple(int, int) =
+    case (Dir):
+        direction.North => (0, 1)
+        direction.South => (0, -1)
+        direction.East => (1, 0)
+        direction.West => (-1, 0)
+<#
+-->
+<!-- 17 -->
+```verse
 # Exhaustive - no wildcard needed
 GetVector(Dir:direction):tuple(int, int) =
     case (Dir):
@@ -297,12 +353,31 @@ GetVector(Dir:direction):tuple(int, int) =
         direction.South => (0, -1)
         direction.East => (1, 0)
         direction.West => (-1, 0)
+
+GetVector(direction.North) = (0, 1)
+```
+<!-- #> -->
 ```
 
 If you add a wildcard when all cases are covered, you'll get a warning
 that the wildcard is unreachable:
 
-<!--NoCompile-->
+<!--versetest
+direction := enum:
+    North
+    South
+    East
+    West
+
+GetVectorWithUnreachable(Dir:direction):tuple(int, int) =
+    case (Dir):
+        direction.North => (0, 1)
+        direction.South => (0, -1)
+        direction.East => (1, 0)
+        direction.West => (-1, 0)
+        _ => (0, 0)
+<#
+-->
 <!-- 18 -->
 ```verse
     case (Dir):
@@ -312,11 +387,19 @@ that the wildcard is unreachable:
         direction.West => (-1, 0)
         _ => (0, 0)  # Warning: all cases already covered
 ```
+<!-- #> -->
+```
 
 Incomplete case coverage is allowed in a `<decides>` context:
 
-<!--verse
+<!--versetest
 direction := enum{  North, South, East, West}
+
+GetPrimaryDirection2(Dir:direction)<decides>:string =
+    case (Dir):
+        direction.North => "Primary"
+        # Other directions cause function to fail
+<#
 -->
 <!-- 19 -->
 ```verse
@@ -325,6 +408,8 @@ GetPrimaryDirection2(Dir:direction)<decides>:string =
     case (Dir):
         direction.North => "Primary"
         # Other directions cause function to fail
+```
+<!-- #> -->
 ```
 
 Open enums can have values added after publication, so they can never
@@ -336,11 +421,12 @@ context.
 The `loop` expression creates an infinite loop that continues until
 explicitly broken:
 
-<!--verse
+<!--versetest
 UpdatePlayerPositions():void={}
 CheckCollisions():void={}
 RenderFrame():void={}
-GameOver()<computes><decides>:void={}
+GameOver()<decides>:void={}
+<#
 -->
 <!-- 22 -->
 ```verse
@@ -350,6 +436,8 @@ GameLoop():void =
         CheckCollisions()
         RenderFrame()
         if (GameOver[]). break
+```
+<!-- #> -->
 ```
 
 The `break` expression exits the loop entirely, terminating iteration.
@@ -409,9 +497,10 @@ ProcessData():void =
 The `for` expression iterates over collections, ranges, and other
 iterable types, providing a more structured approach to repetition:
 
-<!--verse
-player:=struct{ Name:string }
-GetScore(P:player)<computes>:int=0
+<!--versetest
+player:=class{}
+GetScore(P:player):int=100
+<#
 -->
 <!-- 23 -->
 ```verse
@@ -421,6 +510,8 @@ CalculateTotalScore(Players:[]player)<transacts>:int =
         PlayerScore := GetScore(Player)
         set Total += PlayerScore
     Total
+```
+<!-- #> -->
 ```
 
 While it may look familiar from earlier imperative language, `for` is
@@ -453,11 +544,20 @@ iterate would be discarded.
 There is another alternative syntax: the single-line dot syntax for
 simple operations:
 
-<!--NoCompile-->
+<!--versetest
+Values:[]int = array{1, 2, 3}
+DoSomething(V:int):void = {}
+
+M():void =
+    for (V : Values). DoSomething(V)
+<#
+-->
 <!-- 26 -->
 ```verse
 # Single-line dot style
 for (V : Values). DoSomething(V)
+```
+<!-- #> -->
 ```
 
 **Index and Value Pairs:**
@@ -465,14 +565,17 @@ for (V : Values). DoSomething(V)
 When iterating arrays, you can access both the index and the value
 using the pair syntax `Index -> Value`:
 
-<!--verse
+<!--versetest
 player:=struct{ Name:string }
+<#
 -->
 <!-- 28 -->
 ```verse
 PrintRoster(Players:[]player):void =
     for (Index -> Player : Players):
         Print("Player {Index}: {Player.Name}")
+```
+<!-- #> -->
 ```
 
 The index is zero-based, matching Verse's array indexing convention.
@@ -544,6 +647,7 @@ which keys were added to the map.
 
 Strings can be iterated character by character:
 
+<!--NoCompile-->
 <!-- 32 -->
 ```verse
 CountVowels(Text:string):int =
@@ -558,6 +662,7 @@ CountVowels(Text:string):int =
 
 Multiple iteration sources create nested loops, producing the cartesian product:
 
+<!--NoCompile-->
 <!-- 33 -->
 ```verse
 PrintGrid():void =
@@ -571,9 +676,10 @@ PrintGrid():void =
 Verse's `for` expressions are particularly powerful when they leverage
 failure contexts, as they can naturally filter:
 
-<!--verse
+<!--versetest
 player:=struct{ Name:string }
 GetScore(P:player)<computes>:int=0
+<#
 -->
 <!-- 34 -->
 ```verse
@@ -581,13 +687,16 @@ GetHighScorers(Players:[]player):[]player =
     for (Player : Players, Score := GetScore(Player), Score > 1000):
         Player  # Only players with score > 1000 are included
 ```
+<!-- #> -->
+```
 
 When any expression in the iteration header fails, that iteration is
 skipped. This allows elegant filtering without explicit `if`
 statements:
 
-<!--verse
+<!--versetest
 item:=struct{Price:float}
+<#
 -->
 <!-- 35 -->
 ```verse
@@ -596,13 +705,16 @@ AffordableItems(Items:[]item, Budget:float):[]float =
     for (Item : Items, Item.Price <= Budget):
         Item.Price * 1.1  # Apply 10% markup
 ```
+<!-- #> -->
+```
 
 **For as an Expression:**
 
 Like other control flow constructs, `for` is an expression. When the body produces values, `for` collects them into an array:
 
-<!--verse
+<!--versetest
 player:=struct{Name:string}
+<#
 -->
 <!-- 36 -->
 ```verse
@@ -610,6 +722,8 @@ player:=struct{Name:string}
 GetNames(Players:[]player):[]string =
     for (Player : Players):
         Player.Name  # Each iteration produces a string
+```
+<!-- #> -->
 ```
 
 This makes `for` a powerful tool for transforming collections without
@@ -627,9 +741,10 @@ Unlike many languages, Verse does not currently support a `continue`
 statement to skip to the next iteration. Instead, use conditional
 logic or failure-based filtering to achieve similar results:
 
-<!--verse
+<!--versetest
 item:=struct{IsValid:logic}
 ProcessItem(I:item):void={}
+<#
 -->
 <!-- 38 -->
 ```verse
@@ -644,6 +759,8 @@ ProcessItems(Items:[]item):void =
 ProcessValidItems(Items:[]item):void =
     for (Item : Items, Item.IsValid?):
         ProcessItem(Item)  # Only valid items reach here
+```
+<!-- #> -->
 ```
 
 
@@ -744,7 +861,17 @@ The `return` statement provides explicit early exits from functions,
 allowing you to terminate execution and return a value before reaching
 the end of the function body:
 
-<!--verse-->
+<!--versetest
+ValidateInput(Value:int):string =
+    if (Value < 0):
+        return "Error: Negative value"
+
+    if (Value > 1000):
+        return "Error: Value too large"
+
+    "Valid"
+<#
+-->
 <!-- 48 -->
 ```verse
 ValidateInput(Value:int):string =
@@ -756,16 +883,19 @@ ValidateInput(Value:int):string =
 
     "Valid"     # Implicit return
 ```
+<!-- #> -->
+```
 
 Return statements can only appear in specific positions within your
 code—they must be in "tail position," meaning they must be the last
 operation performed before control exits a scope. This restriction
 ensures predictable control flow:
 
-<!--verse
+<!--versetest
 GetOrder(:int)<transacts><decides>:order=order{}
 order := class<allocates>{ IsValid()<decides>:logic=false }
--->	
+<#
+-->
 <!-- 49 -->
 ```verse
 # Valid: return is last operation
@@ -782,15 +912,18 @@ GetStatus(Value:int):string =
     else:
         return "Non-positive"
 ```
+<!-- #> -->
+```
 
 Verse functions implicitly return the value of their last expression,
 so `return` is only needed for early exits:
 
-<!--verse
+<!--versetest
 CalculateBonus(Score:int):int={
     if(Score<100)then{return 0}
     Score*10
 }
+<#
 -->
 <!-- 51 -->
 ```verse
@@ -804,15 +937,18 @@ GetDiscount(Price:float):float =
 
     Price * 0.1  # Implicit return with 10% discount
 ```
+<!-- #> -->
+```
 
 In functions with the `<decides>` effect, `return` allows you to
 provide successful values from early exits, while still allowing other
 paths to fail:
 
-<!--verse
+<!--versetest
 config:=struct{MaxRetries:int}
 GetConfig()<transacts><decides>:config=config{MaxRetries:=3}
 AttemptOperation(Retry:int)<computes><decides>:string="success"
+<#
 -->
 <!-- 52 -->
 ```verse
@@ -822,6 +958,8 @@ RetryableOperation()<transacts>:string =
             if (Result := AttemptOperation[Retry]):
                 return Result  # Success - exit immediately
     "Failed" # All retries exhausted
+```
+<!-- #> -->
 ```
 
 This pattern is common for search operations where you want to return
@@ -833,12 +971,13 @@ The `defer` statement schedules code to run just before successfully
 exiting the current scope. This makes it invaluable for cleanup
 operations like closing files, releasing resources, or logging:
 
-<!--verse
+<!--versetest
 OpenFile(P:string)<computes>:?int=false
 CloseFile(P:int)<computes>:void={}
 ReadFile(P:int)<computes>:?string=false
 ProcessContents(P:string)<computes><decides>:void={}
 SaveResults()<computes><decides>:void={}
+<#
 -->
 <!-- 61 -->
 ```verse
@@ -851,10 +990,19 @@ ProcessFile(FileName:string)<transacts><decides>:void =
     ProcessContents[Contents]
     SaveResults[]
 ```
+<!-- #> -->
+```
 
 Deferred code executes when the scope exits successfully or through
 explicit control flow like `return`:
 
+<!--versetest
+OpenConnection():int=0
+CloseConnection(Id:int):void={}
+Query(Id:int)<decides>:string="result"
+ProcessResult(R:string):void={}
+<#
+-->
 <!-- 62 -->
 ```verse
 ProcessQuery()<transacts>:void =
@@ -869,16 +1017,19 @@ ProcessQuery()<transacts>:void =
 
     # defer executes before leaving the function scope on success
 ```
+<!-- #> -->
+```
 
 This is a subtle but crucial point: if a function fails due to
 speculative execution, deferred code does **not** execute. This is
 because failure triggers a rollback that undoes all effects, including
 the scheduling of defer blocks:
 
-<!--verse
+<!--versetest
 AcquireResource()<transacts><decides>:int=0
 ReleaseResource(Id:int)<transacts>:void={}
 RiskyOperation(Id:int)<transacts><decides>:void={}
+<#
 -->
 <!-- 63 -->
 ```verse
@@ -889,6 +1040,8 @@ ExampleWithFailure()<transacts><decides>:void =
 
     RiskyOperation[ResourceId] # This fails!
     # defer does NOT run - entire scope was speculative and rolled back
+```
+<!-- #> -->
 ```
 
 When the `RiskyOperation` fails, the entire function also fails, and
@@ -905,12 +1058,13 @@ When multiple `defer`s exist in the same scope, they execute in
 reverse order of definition (last-in, first-out), mimicking the
 stack-based cleanup of nested resources:
 
-<!--verse
+<!--versetest
 OpenDatabase()<transacts>:int=0
 CloseDatabase(Id:int)<transacts>:void={}
 BeginTransaction(Id:int)<decides><transacts>:int=0
 CommitTransaction(Id:int)<transacts>:void={}
 DoWork()<transacts><decides>:void={}
+<#
 -->
 <!-- 64 -->
 ```verse
@@ -925,6 +1079,8 @@ DatabaseTransaction()<transacts><decides>:void =
 
     DoWork[]  # Work happens with both resources active
     # Defers execute: CommitTransaction, then CloseDatabase
+```
+<!-- #> -->
 ```
 
 **Defers and Async Cancellation:**
@@ -956,8 +1112,9 @@ This ensures cleanup happens even when concurrency control interrupts your code.
 Defer statements can be nested within other defer blocks, creating a
 cascade of cleanup operations:
 
-<!--verse
+<!--versetest
 Log(S:string)<transacts>:void={}
+<#
 -->
 <!-- 66 -->
 ```verse
@@ -971,6 +1128,8 @@ ProcessWithCleanup():void =
     Log("D")
     # Output: A D B C inner
 ```
+<!-- #> -->
+```
 
 The execution order follows the LIFO principle at each nesting
 level—inner defers execute after the outer defer's code, maintaining
@@ -980,8 +1139,9 @@ the stack-like cleanup order.
 
 Defers work correctly within all control flow constructs:
 
-<!--verse
+<!--versetest
 Log(S:string)<transacts>:void={}
+<#
 -->
 <!-- 67 -->
 ```verse
@@ -1002,6 +1162,8 @@ ProcessWithIf(Condition:logic):void =
         defer:
             Log("Else cleanup")
         Log("Else body")
+```
+<!-- #> -->
 ```
 
 Each control flow path executes its own defers independently.
@@ -1029,6 +1191,7 @@ to ensure predictable behavior:
 Understanding how your code performs is crucial for optimization, and
 the `profile` expression measures execution time:
 
+<!--versetest-->
 <!-- 73 -->
 ```verse
 OptimizedCalculation():float =
@@ -1048,10 +1211,21 @@ Profile expressions pass through their results transparently, meaning
 you can wrap them around any expression without changing the program's
 behavior:
 
-<!--NoCompile-->
+<!--versetest
+BaseDamage:float = 50.0
+GetMultiplier()<computes>:float = 1.5
+GetCriticalBonus()<computes>:float = 2.0
+
+M():void =
+    PlayerDamage := profile("Damage Calculation"):
+        BaseDamage * GetMultiplier() * GetCriticalBonus()
+<#
+-->
 <!-- 74 -->
 ```verse
 PlayerDamage := profile("Damage Calculation"):
     BaseDamage * GetMultiplier() * GetCriticalBonus()
+```
+<!-- #> -->
 ```
 

@@ -244,11 +244,17 @@ Use `set A = B` instead to assign to existing mutable variables.
 
 **Cannot nest var declarations:**
 
+<!--versetest
+assert_semantic_error(3549):
+    var (var X):int = 0
+<#
+-->
 <!-- 13 -->
 ```verse
 # Invalid
 # var (var X):int = 0  # ERROR 3549
 ```
+<!-- #> -->
 
 The `var` keyword cannot be nested within itself.
 

@@ -526,11 +526,10 @@ Object construction uses a distinctive brace syntax to indicates the
 creation of a new instance. The syntax requires explicit field
 initialization using the `:=` operator:
 
-<!--
+<!--versetest
 point := struct{ X:int, Y:int }
 player := struct{Name:string, Level:int, Health:int}
 config := struct { MaxPlayers:int, Difficulty:string, EnablePvP:logic }
-F():void=
 -->
 <!-- 31 -->
 ```verse
@@ -548,13 +547,12 @@ binding operations—you're binding values to fields at construction
 time. Object constructors can be nested, creating complex
 initialization expressions:
 
-<!--
-game_state:=struct{Player:player, Settings:config}
-config:=struct{Difficulty:string}
-player:=struct{ Position:point, Inventory:inventory}
+<!--versetest
 point:=struct{ X:int, Y:int}
 inventory:=struct{Capacity:int}
-F():void=
+player:=struct{ Position:point, Inventory:inventory}
+config:=struct{Difficulty:string}
+game_state:=struct{Player:player, Settings:config}
 -->
 <!-- 32 -->
 ```verse
@@ -579,10 +577,11 @@ larger expressions.
 The if-then-else construct is an expression that evaluates to one of
 two values based on a condition:
 
-<!--
+<!--versetest
 ComputeA():int=1
 ComputeB():int=1
-F(X:int,Condition:logic):void=
+X:int = 5
+Condition:logic = true
 -->
 <!-- 33 -->
 ```verse
@@ -620,26 +619,19 @@ For expressions iterate over collections and produce values. The basic
 form iterates over elements:
 
 <!--versetest
-Process(i:int):void={}
-F(Collection:[]int):void=
-    for (Item : Collection) { Process(Item) }
-<#
+Process(Item:int):void={}
+Collection:[]int = array{1, 2, 3}
 -->
 <!-- 35 -->
 ```verse
 for (Item : Collection) { Process(Item) }
 ```
-<!-- #> -->
 
 An extended form provides access to both index and item--in the case
 of a `Map`, indices are not limited to integers:
 
 <!--versetest
-F(Collection:[]int):void=
-    for (Index -> Item : Collection) {
-        Print("Item at {Index} is {Item}")
-    }
-<#
+Collection:[]int = array{1, 2, 3}
 -->
 <!-- 36 -->
 ```verse
@@ -647,7 +639,6 @@ for (Index -> Item : Collection) {
     Print("Item at {Index} is {Item}")
 }
 ```
-<!-- #> -->
 
 Since for expressions are themseleves expressions, they produce array
 values and compose with other expressions. The body of a for
@@ -661,9 +652,9 @@ explicitly terminated through failure or other control flow:
 
 <!--versetest
 GetNext():int=1
-Done(i:int)<computes><decides>:void={}
-Process(i:int):void={}
-F():void=
+Done(Value:int)<computes><decides>:void={}
+Process(Value:int):void={}
+M():void=
     loop {
         Value := GetNext()
         if (Done[Value]) then break
@@ -695,14 +686,7 @@ color := enum:
     Yellow
     Green
     Other
-F(Color:color): void=
-    Description := case(Color) {
-        color.Red => "Danger",
-        color.Yellow => "Warning",
-        color.Green => "Safe",
-        _ => "Unknown"
-    }
-<#
+Color:color = color.Red
 -->
 <!-- 38 -->
 ```verse
@@ -713,7 +697,6 @@ Description := case(Color) {
     _ => "Unknown"
 }
 ```
-<!-- #> -->
 
 The `_` pattern serves as a catch-all, ensuring the case expression is
 exhaustive. Case expressions evaluate to the value of the matched
@@ -996,6 +979,7 @@ Y := (0, 1)              # Y = (0, 1), type is tuple(int, int)
 
 This applies to function return values as well:
 
+<!--versetest-->
 <!-- 52 -->
 ```verse
 GetInt():int = (1.0; 2)                    # Returns 2 (int)
@@ -1047,6 +1031,7 @@ Sum := Add(10, 20)                # Two separate arguments
 
 Semicolons are *not allowed* in parameter lists - you must use commas:
 
+<!--versetest-->
 <!-- 56 -->
 ```verse
 # VALID: Comma-separated parameters
@@ -1168,7 +1153,20 @@ last value), while commas create tuples. See [Semicolons vs
 Commas](#semicolons-vs-commas-sequences-and-tuples) for the complete
 rules:
 
-<!--NoCompile-->
+<!--versetest
+A:int = 1
+B:int = 2
+C:int = 3
+M():void =
+    X := { A; B; C }
+    Y := { A, B, C }
+    Z := {
+        A
+        B
+        C
+    }
+<#
+-->
 <!-- 65 -->
 ```verse
 { A; B; C }           # Semicolon separation (returns C)
@@ -1179,6 +1177,7 @@ rules:
     C
 }
 ```
+<!-- #> -->
 
 ## Array Expressions
 

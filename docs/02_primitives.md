@@ -330,13 +330,16 @@ both `int` and `float` types.
 The `Abs()` function returns the absolute value of a number—its
 distance from zero without regard to sign:
 
-<!--NoCompile-->
+<!--versetest
+<#
+-->
 <!-- 17 -->
 ```verse
 # Signatures
 Abs(X:int):int
 Abs(X:float):float
 ```
+<!-- #> -->
 
 <!--versetest-->
 <!-- 18 -->
@@ -349,7 +352,9 @@ Abs(3.14) # Returns 3.14
 
 The `Min()` and `Max()` functions return the minimum or maximum of two values:
 
-<!--NoCompile-->
+<!--versetest
+<#
+-->
 <!-- 19 -->
 ```verse
 # Signatures
@@ -358,6 +363,7 @@ Min(A:float, B:float):float
 Max(A:int, B:int):int
 Max(A:float, B:float):float
 ```
+<!-- #> -->
 
 <!--versetest-->
 <!-- 20 -->
@@ -376,7 +382,9 @@ Min(Inf, Inf)      # Returns Inf
 
 Verse provides multiple rounding functions that convert floats to integers with different rounding strategies:
 
-<!--NoCompile-->
+<!--versetest
+<#
+-->
 <!-- 21 -->
 ```verse
 # Signatures
@@ -385,6 +393,7 @@ Ceil(X:float)<reads><decides>:int    # Round up
 Round(X:float)<reads><decides>:int   # Round to nearest even (IEEE-754)
 Int(X:float)<reads><decides>:int     # Truncate toward zero
 ```
+<!-- #> -->
 
 Round to nearest even (ties go to even):
 
@@ -602,19 +611,16 @@ The modulo result always satisfies:
 
 <!--versetest
 assert:
-    # Test the identity with various values
     Dividend:int = 15
     Divisor:int = 4
     Dividend = Quotient[Dividend, Divisor] * Divisor + Mod[Dividend, Divisor]
 
 assert:
-    # Negative dividend
     Dividend:int = -15
     Divisor:int = 4
     Dividend = Quotient[Dividend, Divisor] * Divisor + Mod[Dividend, Divisor]
 
 assert:
-    # Negative divisor
     Dividend:int = -1
     Divisor:int = -2
     Dividend = Quotient[Dividend, Divisor] * Divisor + Mod[Dividend, Divisor]
@@ -678,31 +684,22 @@ The formula is: `From + Parameter * (To - From)`
 is not NaN, Inf, or -Inf. And fails otherwise:
 
 <!--versetest
-# Method on float values
-# X.IsFinite()<computes><decides>:float
 
 assert:
-    (5.0).IsFinite[]      # succeeds
-    (0.0).IsFinite[]      # succeeds
-    (-100.0).IsFinite[]   # succeeds
+    (5.0).IsFinite[]
+    (0.0).IsFinite[]
+    (-100.0).IsFinite[]
 
 assert:
-    not (Inf).IsFinite[]  # fails
+    not (Inf).IsFinite[]
 assert:
-    not (-Inf).IsFinite[] # fails
+    not (-Inf).IsFinite[]
 assert:
-    not (NaN).IsFinite[]  # fails
+    not (NaN).IsFinite[]
 
 assert:
-    # Returns the same number if succeeds
-    (15.16).IsFinite[] = 15.16 # succeeds, both are equal
+    (15.16).IsFinite[] = 15.16
 
-# Useful for validation
-# SafeCalculation(X:float, Y:float)<decides>:float =
-#     X.IsFinite[] and Y.IsFinite[]
-#     Result := X / Y
-#     Result.IsFinite[]
-#     Result
 <#
 -->
 <!-- 33 -->
@@ -1049,7 +1046,9 @@ The `ToString()` function converts values to their string
 representations. It's polymorphic—multiple overloads exist for
 different types:
 
-<!--NoCompile-->
+<!--versetest
+<#
+-->
 <!-- 53 -->
 ```verse
 # Signatures
@@ -1058,6 +1057,7 @@ ToString(X:float):string
 ToString(X:char):string
 ToString(X:string):string  # Identity function
 ```
+<!-- #> -->
 
 String interpolation implicitly calls `ToString()` on embedded values:
 
@@ -1124,7 +1124,8 @@ Y:?string = CreateDefault(string)  # T = string, returns false
 All Verse types can be type values:
 
 
-<!-- TODO the following does not compile-->
+<!-- TODO: Cannot convert - type expressions like []int, [string]int, tuple(), ?int,
+     int->string, subtype(), and type{} cannot be assigned to variables at module scope -->
 
 <!--NoCompile-->
 <!-- 76 -->
@@ -1187,9 +1188,7 @@ While `where t:type` accepts any type, you can use more specific
 constraints like `subtype` to limit which types are valid:
 
 <!--versetest
-# Only accepts types that are subtypes of comparable
 Sort(Items:[]t where t:subtype(comparable)):[]t =
-    # Can use comparison operations because t is comparable
     Items
 <#
 -->
@@ -1232,12 +1231,9 @@ TypeRegistry:[string]type = map{
 **Passing types between functions:**
 
 <!--versetest
-# Helper function that takes a type parameter
 CreateArray(ElementType:type, Size:int):[]ElementType =
-    # This pattern works in some contexts
     array{}
 
-# Function that uses the helper
 MakeIntArray():[]int =
     CreateArray(int, 10)
 <#
@@ -1262,14 +1258,12 @@ parameter, allowing the function to work with any type while
 potentially failing:
 
 <!--versetest
-# return type `t` must be the same type as the `Value` param type
 MaybeValue(Value:t, Condition:logic where t:type):?t =
     if (Condition?) then option{Value} else false
 
 assert:
-    # Usage
-    X:?int = MaybeValue(5, false)  # Returns false as ?int
-    Y:?float = MaybeValue(3.14, true)  # Returns option{3.14} as ?float
+    X:?int = MaybeValue(5, false)
+    Y:?float = MaybeValue(3.14, true)
 <#
 -->
 <!-- 81a -->
@@ -1283,6 +1277,8 @@ X:?int = MaybeValue(5, false)  # Returns false as ?int
 Y:?float = MaybeValue(3.14, true)  # Returns option{3.14} as ?float
 ```
 <!-- #> -->
+
+<!-- TODO: Cannot test - snippet ID "81b" is non-numeric and not supported by extract tools -->
 
 <!--NoCompile-->
 <!-- 81b -->
@@ -1334,25 +1330,38 @@ While `type` enables powerful abstractions, there are some limitations:
 
 **Cannot construct arbitrary types generically:**
 
-<!--NoCompile-->
+<!--versetest
+<#
+-->
 <!-- 83 -->
 ```verse
 # Cannot do this - no way to construct a value of arbitrary type t
 # MakeValue(T:type):T = ???  # What would this return for T=int? T=string?
 ```
+<!-- #> -->
 
 **Cannot inspect type structure at runtime:**
 
-<!--NoCompile-->
+<!--versetest
+<#
+-->
 <!-- 84 -->
 ```verse
 # Cannot do this - no runtime type introspection
 # GetFieldNames(T:type):string = ???
 ```
+<!-- #> -->
 
 **Type parameters must be inferred or explicit:**
 
-<!--NoCompile-->
+<!--versetest
+Identity(X:t where t:type):t = X
+
+assert:
+    Identity(42)
+
+<#
+-->
 <!-- 85 -->
 ```verse
 # Type parameter must be determinable from usage
@@ -1364,6 +1373,7 @@ Identity(42)
 # ERROR: t cannot be inferred from no arguments
 # MakeDefault(where t:type):t = ???
 ```
+<!-- #> -->
 
 ## Any
 

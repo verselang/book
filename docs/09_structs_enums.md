@@ -12,13 +12,12 @@ Structs provide lightweight data containers without the object-oriented features
 
 Structs group related data with minimal overhead:
 
-<!--verse
+<!--NoCompile-->
+<!-- 01 -->
+```verse
 damage_type:= enum:
     Physical
 character := struct{}
--->
-<!-- 01 -->
-```verse
 vector2 := struct:
     X : float = 0.0
     Y : float = 0.0
@@ -42,7 +41,24 @@ All struct fields are public and immutable by default. Structs cannot have metho
 
 Creating struct instances uses the same archetype syntax as classes:
 
-<!--NoCompile-->
+<!--versetest
+vector2 := struct:
+    X : float = 0.0
+    Y : float = 0.0
+
+color := struct:
+    R : int = 0
+    G : int = 0
+    B : int = 0
+    A : int = 255
+
+M()<transacts>:void =
+    Origin := vector2{}
+    PlayerPos := vector2{X := 100.0, Y := 250.0}
+    RedColor := color{R := 255}
+    NewPos := PlayerPos
+<#
+-->
 <!-- 02 -->
 ```verse
 Origin := vector2{}  # Uses defaults: (0.0, 0.0)
@@ -53,6 +69,7 @@ RedColor := color{R := 255}  # Other channels default to 0/255
 NewPos := PlayerPos
 # NewPos is a separate instance with the same values
 ```
+<!-- #> -->
 
 Since structs are value types, assigning a struct to a variable creates a copy of all its data. This differs from classes, which use reference semantics.
 
@@ -60,7 +77,25 @@ Since structs are value types, assigning a struct to a variable creates a copy o
 
 Structs with all comparable fields support equality comparison:
 
-<!--NoCompile-->
+<!--versetest
+vector3i := struct:
+    X : int = 0
+    Y : int = 0
+    Z : int = 0
+
+PrintMsg(S:string)<transacts>:void = {}
+
+M()<transacts>:void =
+    Origin := vector3i{}
+    UnitX := vector3i{X := 1}
+
+    if (Origin = vector3i{}):
+        PrintMsg("At origin")
+
+    if (Origin = UnitX):
+        PrintMsg("Same position")
+<#
+-->
 <!-- 03 -->
 ```verse
 vector3i := struct:
@@ -77,6 +112,7 @@ if (Origin = vector3i{}):  # Succeeds - all fields match
 if (Origin = UnitX):  # Fails - X fields differ
     Print("Same position")
 ```
+<!-- #> -->
 
 Comparison happens field by field, succeeding only if all corresponding fields are equal.
 
@@ -84,7 +120,17 @@ Comparison happens field by field, succeeding only if all corresponding fields a
 
 Structs can be marked as persistable for use with Verse's persistence system:
 
-<!--NoCompile-->
+<!--versetest
+player_stats := struct<persistable>:
+    HighScore : int = 0
+    GamesPlayed : int = 0
+    WinRate : float = 0.0
+
+player := class<concrete><unique>{}
+
+PlayerData : weak_map(player, player_stats) = map{}
+<#
+-->
 <!-- 04 -->
 ```verse
 player_stats := struct<persistable>:
@@ -95,6 +141,7 @@ player_stats := struct<persistable>:
 # Can be used in persistent storage
 PlayerData : weak_map(player, player_stats) = map{}
 ```
+<!-- #> -->
 
 Once published, persistable structs cannot be modified, ensuring data compatibility across game updates.
 
@@ -104,6 +151,7 @@ Enums define types with a fixed set of named values, perfect for representing st
 
 An enum lists all possible values for a type:
 
+<!--NoCompile-->
 <!-- 05 -->
 ```verse
 game_state := enum:
@@ -128,15 +176,27 @@ direction := enum:
 
 Each value in the enum becomes a named constant of that enum type. The compiler ensures that variables of an enum type can only hold one of these defined values. Enums can even be empty:
 
-<!--verse-->
+<!--versetest
+placeholder := enum{}
+<#
+-->
 <!-- 06 -->
 ```verse
 placeholder := enum{}  # Valid but rarely useful
 ```
+<!-- #> -->
 
 Enums introduce both a type and a set of values, and it's crucial to distinguish between them:
 
-<!--verse-->
+<!--versetest
+status := enum:
+    Active
+    Inactive
+
+
+CurrentStatus:status = status.Active
+<#
+-->
 <!-- 07 -->
 ```verse
 status := enum:
@@ -148,10 +208,21 @@ status := enum:
 
 CurrentStatus:status = status.Active  # OK - value of type status
 ```
+<!-- #> -->
 
 You cannot use the enum type where a value is expected:
 
-<!--NoCompile-->
+<!--versetest
+status := enum:
+    Active
+    Inactive
+
+M()<transacts>:void =
+    GoodAssignment:status = status.Active
+    var CurrentStatus:status = status.Active
+    set CurrentStatus = status.Inactive
+<#
+-->
 <!-- 08 -->
 ```verse
 # ERROR: Cannot use type as value
@@ -162,6 +233,7 @@ set CurrentStatus = status     # Compile error
 GoodAssignment:status = status.Active  # OK
 set CurrentStatus = status.Inactive    # OK
 ```
+<!-- #> -->
 
 This distinction prevents confusion and ensures type safety. The enum type defines what values are possible, while enum values are the actual constants you use in your code.
 
@@ -171,7 +243,13 @@ Enums have specific syntactic requirements that keep their usage clear and unamb
 
 **Enums must be direct right-hand side of definitions:**
 
-<!--NoCompile-->
+<!--versetest
+Priority := enum:
+    Low
+    Medium
+    High
+<#
+-->
 <!-- 09 -->
 ```verse
 # Valid
@@ -184,10 +262,18 @@ Priority := enum:
 Result := -enum{A, B}      # Compile error
 Value := enum{X, Y} + 1    # Compile error
 ```
+<!-- #> -->
 
 **Enums must be module or class-level definitions:**
 
-<!--NoCompile-->
+<!--versetest
+MyEnum := enum:
+    Value1
+    Value2
+
+ProcessData():void = {}
+<#
+-->
 <!-- 10 -->
 ```verse
 # Valid
@@ -199,6 +285,7 @@ MyEnum := enum:
 ProcessData():void =
     LocalEnum := enum{A, B}  # Compile error - no local enums
 ```
+<!-- #> -->
 
 These restrictions ensure enums remain stable, referenceable definitions throughout your codebase rather than ephemeral local values.
 
@@ -241,6 +328,7 @@ The `case` expression with enums provides powerful pattern matching with exhaust
 
 Enums can be marked as open or closed, fundamentally affecting how they can evolve and how they interact with pattern matching:
 
+<!--NoCompile-->
 <!-- 12 -->
 ```verse
 # Closed enum - cannot add values after publication
@@ -273,6 +361,7 @@ The interaction between enum types and case expressions follows sophisticated ru
 
 When your case expression handles every value in a closed enum, no wildcard is needed:
 
+<!--NoCompile-->
 <!-- 13 -->
 ```verse
 day := enum:
@@ -291,7 +380,19 @@ GetDayType(D:day):string =
 
 Adding a wildcard when all cases are covered triggers an unreachable code warning:
 
-<!--NoCompile-->
+<!--versetest
+day := enum:
+    Monday
+    Tuesday
+    Wednesday
+
+GetDayType(D:day):string =
+    case (D):
+        day.Monday => "Weekday"
+        day.Tuesday => "Weekday"
+        day.Wednesday => "Weekday"
+<#
+-->
 <!-- 14 -->
 ```verse
 # Warning: unreachable wildcard
@@ -302,11 +403,13 @@ GetDayType(D:day):string =
         day.Wednesday => "Weekday"
         _ => "Unknown"  # WARNING: unreachable - all values already matched
 ```
+<!-- #> -->
 
 **Closed Enums with Partial Coverage:**
 
 If you don't match all values, you must either provide a wildcard or be in a `<decides>` context:
 
+<!--NoCompile-->
 <!-- 15 -->
 ```verse
 day := enum:
@@ -339,6 +442,7 @@ GetWeekStartDecides(D:day)<decides>:string =
 Open enums can have new values added after publication, so they can never be exhaustive.\
 This is to ensure backwards compatibility of functions using them (see also [Publishing Functions](06_functions.md/#publishing-functions)):
 
+<!--NoCompile-->
 <!-- 16 -->
 ```verse
 weapon := enum<open>:
@@ -394,7 +498,19 @@ The compiler actively detects unreachable cases in case expressions, helping you
 
 **Duplicate cases** are flagged as unreachable:
 
-<!--NoCompile-->
+<!--versetest
+status := enum:
+    Active
+    Inactive
+    Pending
+
+GetStatusCode(S:status):int =
+    case (S):
+        status.Active => 1
+        status.Inactive => 2
+        status.Pending => 3
+<#
+-->
 <!-- 17 -->
 ```verse
 status := enum:
@@ -410,10 +526,22 @@ GetStatusCode(S:status):int =
         status.Pending => 3
         status.Pending => 4  # ERROR: unreachable - already matched above
 ```
+<!-- #> -->
 
 **Cases after wildcards** are always unreachable:
 
-<!--NoCompile-->
+<!--versetest
+status := enum:
+    Active
+    Inactive
+    Pending
+
+GetStatusCode(S:status):int =
+    case (S):
+        status.Active => 1
+        _ => 0
+<#
+-->
 <!-- 18 -->
 ```verse
 # ERROR: Case after wildcard
@@ -423,6 +551,7 @@ GetStatusCode(S:status):int =
         _ => 0  # Wildcard matches everything
         status.Inactive => 2  # ERROR: unreachable - wildcard already matched
 ```
+<!-- #> -->
 
 These errors prevent logic bugs where you think you're handling specific cases but the code will never execute.
 
@@ -430,6 +559,7 @@ These errors prevent logic bugs where you think you're handling specific cases b
 
 Sometimes you intentionally want unreachable cases—for testing, migration, or defensive programming. The `@ignore_unreachable` attribute suppresses unreachable warnings and errors for specific cases:
 
+<!--NoCompile-->
 <!-- 19 -->
 ```verse
 status := enum:
@@ -446,7 +576,18 @@ ProcessStatus(S:status):int =
 
 This attribute only affects cases it's applied to. Other unreachable cases without the attribute still produce errors:
 
-<!--NoCompile-->
+<!--versetest
+status := enum:
+    Active
+    Inactive
+
+ProcessStatus(S:status):int =
+    case (S):
+        status.Active => 1
+        status.Inactive => 2
+        @ignore_unreachable status.Inactive => 3
+<#
+-->
 <!-- 20 -->
 ```verse
 ProcessStatus(S:status):int =
@@ -456,6 +597,7 @@ ProcessStatus(S:status):int =
         @ignore_unreachable status.Inactive => 3  # Suppressed
         status.Active => 4  # ERROR: still unreachable without attribute
 ```
+<!-- #> -->
 
 Use `@ignore_unreachable` sparingly, primarily during refactoring or when maintaining multiple code paths for testing purposes.
 
@@ -463,6 +605,7 @@ Use `@ignore_unreachable` sparingly, primarily during refactoring or when mainta
 
 Enumerators can collide with identifiers in parent scopes. When this happens, you can use explicit qualification to disambiguate:
 
+<!--NoCompile-->
 <!-- 21 -->
 ```verse
 # Top level 'Start'
@@ -485,6 +628,7 @@ The syntax `(enum_name:)enumerator` explicitly qualifies the enumerator, prevent
 
 Qualification also allows you to use reserved words and keywords as enum values, which would otherwise cause errors:
 
+<!--NoCompile-->
 <!-- 22 -->
 ```verse
 # Using reserved words as enum values
@@ -506,6 +650,7 @@ This is particularly useful when modeling language constructs, access levels, or
 
 You can even use the enum's own name as a value when qualified:
 
+<!--NoCompile-->
 <!-- 23 -->
 ```verse
 recursive_enum := enum:
@@ -550,7 +695,31 @@ Attributes must be marked with the appropriate scopes (`@attribscope_enum` for e
 
 Enum values are fully comparable, meaning they support both equality (`=`) and inequality (`<>`) operators. This makes them ideal for state tracking and conditional logic:
 
-<!--NoCompile-->
+<!--versetest
+weapon_type := enum:
+    Sword
+    Bow
+    Staff
+
+game_state := enum:
+    MainMenu
+    Playing
+    Paused
+
+PlaySwordAnimation()<transacts>:void = {}
+OnStateChanged(Prev:game_state, Curr:game_state)<transacts>:void = {}
+
+M()<transacts>:void =
+    CurrentWeapon := weapon_type.Sword
+    if (CurrentWeapon = weapon_type.Sword):
+        PlaySwordAnimation()
+
+    var CurrentState:game_state = game_state.MainMenu
+    PreviousState := game_state.Playing
+    if (CurrentState <> PreviousState):
+        OnStateChanged(PreviousState, CurrentState)
+<#
+-->
 <!-- 25 -->
 ```verse
 CurrentWeapon := weapon_type.Sword
@@ -561,10 +730,24 @@ PreviousState := game_state.Playing
 if (CurrentState <> PreviousState):
     OnStateChanged(PreviousState, CurrentState)
 ```
+<!-- #> -->
 
 Enum values from the same enum type can be compared, while values from different enum types are always unequal:
 
-<!--verse-->
+<!--versetest
+letters := enum:
+    A, B, C
+
+numbers := enum:
+    One, Two, Three
+
+Test()<decides>:letters =
+    letters.A = letters.A
+    letters.A <> letters.B
+    letters.A <> numbers.One
+    letters.A
+<#
+-->
 <!-- 26 -->
 ```verse
 letters := enum:
@@ -578,6 +761,7 @@ Test()<decides>:letters =
     letters.A <> letters.B   # Succeeds - different values
     letters.A <> numbers.One # Succeeds - different enum types
 ```
+<!-- #> -->
 
 Because enums are comparable, they can be used as map keys, stored in sets, and used with generic functions that require comparable types:
 

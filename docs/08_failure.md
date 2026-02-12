@@ -31,7 +31,11 @@ This checks validity separately from access, creating opportunities
 for bugs if the check and access become separated or if the array
 changes between them. In Verse, validation and access are unified:
 
-<!--NoCompile-->
+<!--versetest
+Array:[]int = array{1,2,3}
+Index:int = 1
+Process(V:int):void = {}
+-->
 <!-- 02 -->
 ```verse
 if (Value := Array[Index]):
@@ -49,13 +53,20 @@ A failable expression is one that can either succeed and produce a value, or fai
 
 Many operations are naturally failable. Array indexing fails when the index is out of bounds. Map lookups fail when the key doesn't exist. Comparisons fail when the values aren't equal. Division fails when dividing by zero. Even simple literals can be made to fail:
 
-<!--NoCompile-->
+<!--versetest
+M()<decides>:void =
+    42
+    false?
+    true?
+<#
+-->
 <!-- 03 -->
 ```verse
 42      # Always succeeds with value 42
 false?  # Always fails - the query of false
 true?   # Always succeeds - the query of true
 ```
+<!-- #> -->
 
 The query operator `?` turns any value into a failable expression. When applied to `false`, it always fails. When applied to any other value, it succeeds with that value. This simple mechanism provides immense power for controlling program flow.
 
@@ -134,17 +145,16 @@ The function body is a failure context, allowing failable expressions throughout
 
 When you execute code in a failure context, changes to mutable variables are provisional—they only become permanent if the entire context succeeds. Functions that modify state in failure contexts must use the `<transacts>`  or the `<writes>` effect specifier (see [Effects](13_effects.md)):
 
-<!--verse
-m:=module:
--->
+<!--NoCompile-->
 <!-- 08 -->
 ```verse
-buyer := class:
-    var PlayerGold:int
-    AttemptPurchase(Cost:int)<transacts><decides>:void =
-       set PlayerGold = PlayerGold - Cost  # Provisional change
-       PlayerGold >= 0                     # Check if still valid
-       # If this fails, PlayerGold reverts to original value
+m:=module:
+    buyer := class:
+        var PlayerGold:int
+        AttemptPurchase(Cost:int)<transacts><decides>:void =
+           set PlayerGold = PlayerGold - Cost  # Provisional change
+           PlayerGold >= 0                     # Check if still valid
+           # If this fails, PlayerGold reverts to original value
 ```
 
 If the check fails, the subtraction is automatically rolled back. You
@@ -155,7 +165,21 @@ This transactional behavior makes complex state updates safe and
 predictable. Either everything succeeds and all changes are committed,
 or something fails and nothing changes.
 
-<!--NoCompile-->
+<!--versetest
+game_state := struct{}
+game := class:
+    var State:game_state = game_state{}
+    ModifyHealth()<transacts>:void = {}
+    UpdateInventory()<transacts>:void = {}
+    ChargeResources()<transacts>:void = {}
+    ValidateFinalState()<transacts><decides>:void = {}
+    ComplexOperation()<transacts><decides>:void =
+       ModifyHealth()
+       UpdateInventory()
+       ChargeResources()
+       ValidateFinalState[]
+<#
+-->
 <!-- 09 -->
 ```verse
 game := class:
@@ -166,6 +190,7 @@ game := class:
        ChargeResources()    # until all succeed
        ValidateFinalState[] # If this fails, everything rolls back
 ```
+<!-- #> -->
 
 The `game` class has multiple methods that update the `game_state`,
 before returning `ComplexOperation` validates that the object is in a
@@ -211,7 +236,13 @@ taking the first one that succeeds.
 
 You can combine these operators to create sophisticated control flow:
 
-<!--NoCompile-->
+<!--versetest
+player := struct{}
+IsAlive(P:player)<computes><decides>:void = {}
+IsStunned(P:player)<computes><decides>:void = {}
+HasAmmunition(P:player)<computes><decides>:void = {}
+HasMeleeWeapon(P:player)<computes><decides>:void = {}
+-->
 <!-- 12 -->
 ```verse
 ValidatePlayer(Player:player)<decides>:void =
@@ -274,16 +305,15 @@ The option type and failure are intimately connected. An option either
 contains a value or is empty (represented by `false`). The query
 operator `?` converts between options and failure:
 
-<!--verse
-M()<decides>:void=
--->
+<!--versetest-->
 <!-- 18 -->
 ```verse
-MaybeValue:?int = option{42}  # An optional int
-Value := MaybeValue?          # Succeeds with 42
+M()<decides>:void=
+    MaybeValue:?int = option{42}  # An optional int
+    Value := MaybeValue?          # Succeeds with 42
 
-Empty:?int = false            # An empty value
-Other := Empty?               # Failure
+    Empty:?int = false            # An empty value
+    Other := Empty?               # Failure
 ```
 
 The `option{}` constructor works in reverse, converting failure to an empty option:
@@ -363,16 +393,15 @@ option{1; 2}? = 2
 
 The query operator `?` extracts values from options, failing if the option is empty:
 
-<!--verse
-M()<decides>:void=
--->
+<!--versetest-->
 <!-- 25 -->
 ```verse
-MaybeValue:?int = option{42}
-Value := MaybeValue?  # Succeeds with 42
+M()<decides>:void=
+    MaybeValue:?int = option{42}
+    Value := MaybeValue?  # Succeeds with 42
 
-Empty:?int = false
-Other := Empty?  # Fails - cannot unwrap empty option
+    Empty:?int = false
+    Other := Empty?  # Fails - cannot unwrap empty option
 ```
 
 Unwrapping is only allowed in failure contexts:
@@ -443,36 +472,7 @@ DirectUnpack(option{option{2}})
 
 The `?.` operator provides safe member access on optional values:
 
-<!--verse
-
-m:=module{
-entity := class:
-    Name:string = "Unknown"
-    Health:int = 100
-    TakeDamage(:int):void={}
-
-# Chaining through multiple optionals
-linked_list := class:
-    Value:int = 0
-    Next:?linked_list = false
-
-M()<decides>:void = {
-MaybeEntity:?entity = option{entity{}}
-
-# Safe field access
-if (Name := MaybeEntity?.Name):
-    Print("Entity: {Name}")  # Succeeds
-
-# Safe method call
-MaybeEntity?.TakeDamage(10)  # Only calls if entity present
-
-
-Head:?linked_list = option{linked_list{Value := 1}}
-SecondValue := Head?.Next?.Value  # Fails if any link is empty
-}
-}
-<#
--->
+<!--NoCompile-->
 <!-- 29 -->
 ```verse
 entity := class:
@@ -496,7 +496,6 @@ linked_list := class:
 Head:?linked_list = option{linked_list{Value := 1}}
 SecondValue := Head?.Next?.Value  # Fails if any link is empty
 ```
-<!-- #> -->
 
 The `?.` operator short-circuits—if the option is empty, the entire
 expression fails without evaluating the member access.
@@ -560,7 +559,6 @@ A function can fail at two levels:
 player := string
 IsActive(S:string)<transacts><decides>:string=""
 LookupPlayer(S:string)<transacts><decides>:string="player"
-# TODO: FindEligiblePlayer must have <transacts> to compile
 -->
 <!-- 42 -->
 ```verse
@@ -624,7 +622,17 @@ fails if unsuccessful.
 <!-- TODO: link to chapter 10?  -->
 This is also works with user defined types which must specify `<castable>`:
 
-<!--verse-->
+<!--versetest
+component := class<castable>:
+    Name:string = "Component"
+
+physics_component := class<castable>(component):
+    Velocity:float = 0.0
+
+TryGetPhysics(Comp:component)<decides>:physics_component =
+    physics_component[Comp]
+<#
+-->
 <!-- 48 -->
 ```verse
 component := class<castable>:
@@ -637,6 +645,7 @@ physics_component := class<castable>(component):
 TryGetPhysics(Comp:component)<decides>:physics_component =
     physics_component[Comp]  # Succeeds if Comp is actually a physics_component
 ```
+<!-- #> -->
 
 This makes type-based dispatch easily expressible:
 
@@ -739,7 +748,17 @@ As you work with failure, certain patterns emerge that solve common problems ele
 
 The validation chain pattern uses sequential failures to ensure all conditions are met:
 
-<!--NoCompile-->
+<!--versetest
+action := struct{}
+player := struct{}
+location := struct{}
+GetActingPlayer(A:action)<transacts><decides>:player = player{}
+IsValidTurn(P:player)<computes><decides>:void = {}
+HasRequiredResources(P:player, A:action)<computes><decides>:void = {}
+GetTargetLocation(A:action)<transacts><decides>:location = location{}
+IsValidLocation(L:location)<computes><decides>:void = {}
+ExecuteAction(A:action)<transacts><decides>:void = {}
+-->
 <!-- 62 -->
 ```verse
 ProcessAction(Action:action)<decides>:void =
@@ -755,7 +774,13 @@ Each line must succeed for execution to continue. This creates self-documenting 
 
 The first-success pattern tries alternatives until one works:
 
-<!--NoCompile-->
+<!--versetest
+location := struct{}
+path := struct{}
+DirectPath(S:location, E:location)<transacts><decides>:path = path{}
+PathAroundObstacles(S:location, E:location)<transacts><decides>:path = path{}
+ComplexPathfinding(S:location, E:location)<transacts><decides>:path = path{}
+-->
 <!-- 63 -->
 ```verse
 FindPath(Start:location, End:location)<decides>:path =
@@ -768,7 +793,10 @@ This naturally expresses trying simple solutions before complex ones.
 
 The filtering pattern uses failure to select items:
 
-<!--NoCompile-->
+<!--versetest
+enemy := struct{}
+GetLevel(E:enemy)<computes><decides>:int = 10
+-->
 <!-- 64 -->
 ```verse
 GetEliteEnemies(Enemies:[]enemy):[]enemy =
@@ -780,7 +808,22 @@ Only enemies that have a level and whose level is at least 10 are included in th
 
 The transaction pattern groups related changes:
 
-<!--NoCompile-->
+<!--versetest
+player := class:
+    var Inventory:[]item = array{}
+item := struct{}
+RemoveItem(P:player, I:item)<transacts><decides>:void = {}
+AddItem(P:player, I:item)<transacts>:void = {}
+ValidateTrade(P1:player, P2:player)<computes><decides>:void = {}
+
+TradeItems(PlayerA:player, PlayerB:player, ItemA:item, ItemB:item)<transacts><decides>:void =
+    RemoveItem[PlayerA, ItemA]
+    RemoveItem[PlayerB, ItemB]
+    AddItem(PlayerA, ItemB)
+    AddItem(PlayerB, ItemA)
+    ValidateTrade[PlayerA, PlayerB]
+<#
+-->
 <!-- 65 -->
 ```verse
 TradeItems(var PlayerA:player, var PlayerB:player, ItemA:item, ItemB:item)<transacts><decides>:void =
@@ -790,6 +833,7 @@ TradeItems(var PlayerA:player, var PlayerB:player, ItemA:item, ItemB:item)<trans
     AddItem(PlayerB, ItemA)
     ValidateTrade[PlayerA, PlayerB]
 ```
+<!-- #> -->
 
 Either the entire trade succeeds, or nothing changes.
 
@@ -965,7 +1009,21 @@ complexity of full unification and unbounded backtracking.
 
 Consider a simple logic puzzle solver:
 
-<!--NoCompile-->
+<!--versetest
+constraint := struct{}
+solution := struct{}
+InitialState()<transacts>:solution = solution{}
+ApplyConstraint(S:solution, C:constraint)<transacts>:void = {}
+ValidateSolution(S:solution)<computes><decides>:void = {}
+
+SolvePuzzle(Constraints:[]constraint)<decides>:solution =
+    var State:solution = InitialState()
+    for (Constraint : Constraints):
+        ApplyConstraint(State, Constraint)
+    ValidateSolution[State]
+    State
+<#
+-->
 <!-- 73 -->
 ```verse
 SolvePuzzle(Constraints:[]constraint)<decides>:solution =
@@ -975,6 +1033,7 @@ SolvePuzzle(Constraints:[]constraint)<decides>:solution =
     ValidateSolution[State]
     State
 ```
+<!-- #> -->
 
 If any constraint can't be satisfied, the entire attempt fails. In a full logic programming language, this might trigger complex backtracking. In Verse, the failure model is simpler and more predictable while still being expressive enough for most problems.
 

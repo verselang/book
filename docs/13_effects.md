@@ -35,9 +35,15 @@ verifiable.
 
 Consider this simple function that greets a player:
 
-<!--verse
+<!--versetest
 c:=class:
     var CurrentGreeting:string=""
+    GreetPlayer()<transacts>:void =
+        set CurrentGreeting = "Hello, adventurer!"
+assert:
+    C:=c{}
+    C.GreetPlayer()
+<#
 -->
 <!-- 01 -->
 ```verse
@@ -45,6 +51,9 @@ GreetPlayer()<transacts>:void =
     set CurrentGreeting = "Hello, adventurer!"
     Print(CurrentGreeting)
 ```
+<!--
+#>
+-->
 
 The `<transacts>` effect tells you immediately that this function
 modifies mutable state. You don't need to read the implementation to
@@ -189,17 +198,19 @@ they're deterministic transformations that always produce output. But
 functions marked with `<decides>` can fail, turning failure into a
 control flow mechanism.
 
-<!--verse
+<!--versetest
 ValidateHealth(Health:float)<transacts><decides>:void =
-    Health > 0.0      # Fails if health is zero or negative
-    Health <= 100.0   # Fails if health exceeds maximum
+    Health > 0.0
+    Health <= 100.0
+
 StartCombat():void={}
 player:=struct{Health:float}
-F(Player:player):void={
-if (ValidateHealth[Player.Health]):
-    # Health is valid, continue processing
-    StartCombat()
-}<#
+
+assert:
+    Player:=player{Health:=50.0}
+    if (ValidateHealth[Player.Health]):
+        StartCombat()
+<#
 -->
 <!-- 04 -->
 ```verse
@@ -212,7 +223,7 @@ if (ValidateHealth[Player.Health]):
     # Health is valid, continue processing
     StartCombat()
 ```
-<!--verse
+<!--
 #>
 -->
 
@@ -232,6 +243,7 @@ the same inputs, they always produce the same outputs. They're the
 mathematical ideal of computation, transforming data without side
 effects.
 
+<!--versetest-->
 <!-- 05 -->
 ```verse
 CalculateDamage(BaseDamage:float, Multiplier:float)<computes>:float =
@@ -243,6 +255,25 @@ can see the current values of variables and mutable fields, but cannot
 modify them. This is useful for queries and calculations based on
 current game state.
 
+<!--versetest
+player := class:
+    Name:string
+    var Health:float = 100.0
+    var Score:int = 0
+
+GetPlayerStatus(P:player)<reads>:string =
+    if (P.Health > 50.0):
+        "Healthy"
+    else if (P.Health > 0.0):
+        "Injured"
+    else:
+        "Defeated"
+
+assert:
+    P:=player{Name:="Test"}
+    Status:=GetPlayerStatus(P)
+<#
+-->
 <!-- 06 -->
 ```verse
 player := class:
@@ -258,6 +289,9 @@ GetPlayerStatus(P:player)<reads>:string =
     else:
         "Defeated"
 ```
+<!--
+#>
+-->
 
 The `<writes>` effect permits modification of mutable state. Functions
 with this effect can use `set` to update variables and mutable
@@ -270,11 +304,19 @@ variable whose value depends on other variables; when one of those
 variables is updated by a `set` the live variable will be evaluated
 with potentially some `reads` and `allocates`.
 
-<!--verse
+<!--versetest
 player := class:
     Name:string
     var Health:float = 100.0
-    var Score:int = 0
+
+HealPlayer(P:player, Amount:float)<transacts>:void =
+    NewHealth := P.Health + Amount
+    set P.Health = Min(NewHealth, 100.0)
+
+assert:
+    P:=player{Name:="Test", Health:=50.0}
+    HealPlayer(P, 30.0)
+<#
 -->
 <!-- 07 -->
 ```verse
@@ -282,17 +324,16 @@ HealPlayer(P:player, Amount:float)<transacts>:void =
     NewHealth := P.Health + Amount
     set P.Health = Min(NewHealth, 100.0)
 ```
+<!--
+#>
+-->
 
 The `<allocates>` effect indicates functions that create observably
 unique values — either objects marked `<unique>` or values containing
 mutable fields. Each call to such a function returns a distinct value,
 even if the inputs are identical.
 
-<!--verse
-vector3:=struct{}
-id:=class<allocates>{}
-GenerateID()<allocates>:id=id{}
--->
+<!--NoCompile-->
 <!-- 08 -->
 ```verse
 game_entity := class<allocates>:
@@ -335,9 +376,8 @@ function, but *only within a failure context* using the square bracket
 `[]` syntax -- this ensures that the failure is handled locally and
 doesn't propagate as a failure effect:
 
-<!--verse
+<!--versetest
 DoAsyncWork():void={}
-LogError():void={}
 -->
 <!-- 10 -->
 ```verse
@@ -358,6 +398,7 @@ ProcessAsync(Value:int)<suspends>:void =
 
 A `<suspends>` function can call another `<suspends>` function, but *must not use failure-handling syntax* like `?`:
 
+<!--versetest-->
 <!-- 11 -->
 ```verse
 AsyncOp()<suspends>:?int = false
@@ -429,6 +470,7 @@ An `if` expression hides `fails` effects in its failure context, thus
 failure failure in a condition does not propagate to the enclosing
 function:
 
+<!--versetest-->
 <!-- 13 -->
 ```verse
 SafeMod(A:int, B:int)<computes>:int =
@@ -464,7 +506,7 @@ including `spawn`. One way around this restriction is to use the
 transforming the `fails` effect into a regular value that can be
 handled without `<decides>`:
 
-<!--verse
+<!--versetest
 item:=struct{}
 -->
 <!-- 16 -->
@@ -479,7 +521,7 @@ scope, but has strict effect limitations:
 - Cannot contain `<suspends>` operations—deferred code must execute synchronously
 - Cannot contain `<decides>` operations—deferred code must always succeed
 
-<!--verse
+<!--versetest
 resource:=class{}
 DoAsyncWork():void={}
 GetResource()<transacts>:resource=resource{}
@@ -493,7 +535,7 @@ ProcessResource()<suspends>:void =
     R := AcquireResource()
     defer:
         ReleaseResource(R)  # Valid: transacts allowed in defer
-    
+
     # Process resource with async operations
     DoAsyncWork()
 ```
@@ -534,6 +576,7 @@ never exercises the failure capability.
 
 This principle applies to all effects:
 
+<!--versetest-->
 <!-- 19 -->
 ```verse
 # Function with <computes>
@@ -557,6 +600,7 @@ When deciding subtyping, effects have the following impact:
 While you can add effects through subtyping, you **cannot remove**
 effects that a function actually has:
 
+<!--versetest-->
 <!-- 20 -->
 ```verse
 Validate(X:int)<computes><decides>:int =
@@ -564,12 +608,13 @@ Validate(X:int)<computes><decides>:int =
     X
 
 # ERROR: Cannot assign to type without <decides>
-# F:type{_(:int)<computes>:int} = Validate  
+# F:type{_(:int)<computes>:int} = Validate
 # The function CAN fail, but the type doesn't allow it
 ```
 
 Similarly, functions with heap effects cannot be assigned to pure types:
 
+<!--NoCompile-->
 <!-- 21 -->
 ```verse
 counter := class:
@@ -580,7 +625,7 @@ Increment(C:counter)<transacts>:int =
     C.Count
 
 # ERROR: Cannot assign transacts function to computes type
-# F:type{_(:counter)<computes>:int} = Increment  
+# F:type{_(:counter)<computes>:int} = Increment
 # The function writes state, type doesn't permit it
 ```
 

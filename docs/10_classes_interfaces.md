@@ -143,8 +143,22 @@ an instance is created. These blocks run initialization code that goes
 beyond simple field assignment, allowing you to perform setup logic,
 validation, or side effects during construction:
 
-<!--verse
+<!--versetest
 GetCurrentTime()<computes>:float=0.0
+
+logged_entity := class:
+    ID:int
+    var CreationTime:float = 0.0
+
+    block:
+        # This executes when an instance is created
+        Print("Creating entity with ID: {ID}")
+        set CreationTime = GetCurrentTime()
+
+M()<transacts>:void =
+    Entity := logged_entity{ID := 42}
+    # Prints: "Creating entity with ID: 42"
+<#
 -->
 <!-- 06 -->
 ```verse
@@ -159,6 +173,8 @@ logged_entity := class:
 
 # Entity := logged_entity{ID := 42}
 # Prints: "Creating entity with ID: 42"
+```
+<!-- #> -->
 ```
 
 Block clauses have access to all fields of the class, including
@@ -264,8 +280,32 @@ Classes support single inheritance, allowing you to create specialized
 versions of existing classes. This creates an "is-a" relationship
 where the subclass is a more specific type of the superclass:
 
-<!--verse
+<!--versetest
 vector3:=struct{}
+
+entity := class:
+    var Position : vector3 = vector3{}
+    var IsActive : logic = true
+
+    Activate() : void = set IsActive = true
+    Deactivate() : void = set IsActive = false
+
+character := class(entity):  # character inherits from entity
+    Name : string
+    var Health : int = 100
+
+    TakeDamage(Amount : int) : void =
+        set Health = Max(0, Health - Amount)
+        if (Health = 0):
+            Deactivate()  # Can call inherited methods
+
+player := class(character):  # player inherits from character
+    var Score : int = 0
+    var Lives : int = 3
+
+    AddScore(Points : int) : void =
+        set Score += Points
+<#
 -->
 <!-- 13 -->
 ```verse
@@ -291,6 +331,8 @@ player := class(character):  # player inherits from character
 
     AddScore(Points : int) : void =
         set Score += Points
+```
+<!-- #> -->
 ```
 
 Inheritance creates a type hierarchy where a `player` is also a
@@ -419,9 +461,26 @@ call parent methods.
 
 **Basic Usage:**
 
-<!--verse
+<!--versetest
 ToString(:vector3)<computes>:string=""
 vector3:=class<final>{ X:float=0.0; Y:float=0.0; Z:float=0.0 }
+
+entity := class:
+    Position:vector3
+
+    Move(Delta:vector3):void =
+        Print("Entity moving by {Delta}")
+        # Update position logic here
+
+character := class(entity):
+    var Stamina:float = 100.0
+
+    Move<override>(Delta:vector3):void =
+        # Call parent movement logic
+        (super:)Move(Delta)
+        # Add character-specific behavior
+        set Stamina -= 1.0
+<#
 -->
 <!-- 19 -->
 ```verse
@@ -441,13 +500,38 @@ character := class(entity):
         # Add character-specific behavior
         set Stamina -= 1.0
 ```
+<!-- #> -->
+```
 
 **With Effect Specifiers:**
 
 The `(super:)` syntax works seamlessly with all effect specifiers:
 
-<!--verse
-Sleep(:float)<suspends>:void={}
+<!--versetest
+async_base := class:
+    Process()<suspends>:void =
+        Sleep(1.0)
+        Print("Base processing")
+
+async_derived := class(async_base):
+    Process<override>()<suspends>:void =
+        # Parent method suspends, so this suspends too
+        (super:)Process()
+        Print("Derived processing")
+
+transactional_base := class:
+    var Value:int = 0
+
+    Update()<transacts>:void =
+        set Value += 1
+
+transactional_derived := class(transactional_base):
+    var Counter:int = 0
+
+    Update<override>()<transacts>:void =
+        (super:)Update()
+        set Counter += 1
+<#
 -->
 <!-- 20 -->
 ```verse
@@ -474,6 +558,8 @@ transactional_derived := class(transactional_base):
     Update<override>()<transacts>:void =
         (super:)Update()
         set Counter += 1
+```
+<!-- #> -->
 ```
 
 **Virtual Dispatch Through Parent Methods:**
@@ -2573,9 +2659,23 @@ Beyond basic `subtype` constraints, parametric types support specialized constra
 
 **Subtype constraints:**
 
-<!--verse
+<!--versetest
 entity:=class{ID:int=0}
 player:=class(entity){}
+
+# Constrain to subtype of a class
+bounded_container(t:subtype(entity)) := class:
+    Value:t
+
+    GetID():int = Value.ID  # Can access entity members
+
+# Valid: player is subtype of entity
+# PlayerContainer := bounded_container(player){}
+
+# Invalid: int is not subtype of entity
+# IntContainer := bounded_container(int){}  # Type error
+
+<#
 -->
 <!-- 95 -->
 ```verse
@@ -2591,12 +2691,22 @@ bounded_container(t:subtype(entity)) := class:
 # Invalid: int is not subtype of entity
 # IntContainer := bounded_container(int){}  # Type error
 ```
+<!-- #> -->
 
 **Castable subtype constraints:**
 
-<!--verse
+<!--versetest
 component:=class<castable>{}
 ProcessTyped(:component)<computes>:void={}
+
+# Requires castable subtype
+dynamic_handler(t:castable_subtype(component)) := class:
+    Handle(Item:component):void =
+        if (Typed := t[Item]):
+            # Typed has the specific subtype
+            ProcessTyped(Typed)
+
+<#
 -->
 <!-- 96 -->
 ```verse
@@ -2607,6 +2717,7 @@ dynamic_handler(t:castable_subtype(component)) := class:
             # Typed has the specific subtype
             ProcessTyped(Typed)
 ```
+<!-- #> -->
 
 **Multiple constraints:**
 
@@ -2755,9 +2866,7 @@ E3 := E1
 E1 = E2  # Fails - different instances despite identical field values
 E1 = E3  # Succeeds - same instance
 ```
-<!--verse
-#>
--->
+<!-- #> -->
 
 Without `<unique>`, class instances cannot be compared for equality at
 all—the language prevents meaningless comparisons. With `<unique>`,
@@ -3563,13 +3672,27 @@ field values.
 Classes implement interfaces by inheriting from them and providing
 concrete implementations where required:
 
-<!--verse
+<!--versetest
 healable:=interface:
     TakeDamage(Amount:int)<transacts>:void ={}
-    GetHealth()<reads>:int = 0
+    GetHealth():int = 0
     Heal(Amount:int)<transacts>:void ={}
-	
+
 damageable:=interface{}
+
+character := class(damageable, healable):
+    var Health : int = 100
+    MaxHealth : int = 100
+
+    TakeDamage<override>(Amount:int)<transacts>:void =
+        set Health = Max(0, Health - Amount)
+
+    GetHealth<override>():int = Health
+
+    Heal<override>(Amount:int)<transacts>:void =
+        set Health = Min(MaxHealth, Health + Amount)
+
+<#
 -->
 <!-- 129 -->
 ```verse
@@ -3585,6 +3708,7 @@ character := class(damageable, healable):
     Heal<override>(Amount:int)<transacts>:void =
         set Health = Min(MaxHealth, Health + Amount)
 ```
+<!-- #> -->
 
 A class can implement multiple interfaces, effectively achieving
 multiple inheritance of both behavior contracts and data

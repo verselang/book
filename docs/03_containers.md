@@ -216,19 +216,16 @@ produces a triangular array with rows of increasing length: row 0 has none, row 
 Nested arrays with complex initialization work naturally as class field defaults:
 
 <!--versetest
-# Game board with tile grid
 tile_class := class:
     Position:tuple(int, int)
     var IsOccupied:logic = false
 
 game_board := class:
-    # Initialize 10×10 grid of tiles
     Tiles:[][]tile_class =
         for (Y := 0..9):
             for (X := 0..9):
                 tile_class{Position := (X, Y)}
 
-    # Get tile at specific position
     GetTile(X:int, Y:int)<computes><decides>:tile_class =
         Row := Tiles[Y]
         Row[X]
@@ -425,7 +422,6 @@ ProcessInterfaces(Items:[]interface1):int = Items.Length
 assert:
     X:class1 = class1{}
     Y:class2 = class2{}
-    # Valid - both classes implement interface1
     ProcessInterfaces(X, Y) = 2
 <#
 -->
@@ -544,11 +540,17 @@ Arrays provide intrinsic methods for searching, removing, and replacing elements
 
 The `Find()` method searches for the first occurrence of an element and returns its index, or fails if not found:
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    SomeArray:[]int = array{1, 2, 3}
+    if (Example := SomeArray.Find[2]) {}
+<#
+-->
 <!-- 33 -->
 ```verse
 Array.Find(Element:t)<decides>:int
 ```
+<!-- #> -->
 
 <!--versetest-->
 <!-- 34 -->
@@ -574,13 +576,19 @@ if (Index := Strings.Find["Strawberry"]):
 
 `RemoveFirstElement()` removes the first occurrence:
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    SomeArray:[]int = array{1, 2, 3}
+    if (Updated := SomeArray.RemoveFirstElement[2]) {}
+<#
+-->
 <!-- 35 -->
 ```verse
 Array.RemoveFirstElement(Element:t)<decides>:[]t
 ```
+<!-- #> -->
 
-<!--versetest0-->
+<!--versetest-->
 <!-- 36 -->
 ```verse
 NumArray := array{1, 2, 3, 1, 2, 3}
@@ -613,7 +621,6 @@ Same = array{1, 2, 3, 1, 2, 3}
 <!--NoCompile-->
 <!--00-->
 ```verse
-# Signature
 Array.Remove(From:int, To:int)<decides>:[]t
 ```
 
@@ -626,10 +633,10 @@ if (Updated := NumArray.Remove[1,1]):
     # Updated is array{10, 30, 40}
 
 # Negative index would fail
-# if (not Numbers.Remove[-1,0]):
+# if (not NumArray.Remove[-1,0]):
 
 # Out of bounds would fail
-# if (not Numbers.Remove[6,10]):
+# if (not NumArray.Remove[6,10]):
 ```
 
 `ReplaceFirstElement()` replace first occurrence:
@@ -637,7 +644,6 @@ if (Updated := NumArray.Remove[1,1]):
 <!--NoCompile-->
 <!-- 00 -->
 ```verse
-# Signature
 Array.ReplaceFirstElement(OldValue:t, NewValue:t)<decides>:[]t
 ```
 
@@ -658,7 +664,6 @@ if (not NumArray.ReplaceFirstElement[0, 99]):
 <!--NoCompile-->
 <!-- 00 -->
 ```verse
-# Signature
 Array.ReplaceAllElements(OldValue:t, NewValue:t):[]t
 ```
 
@@ -679,7 +684,6 @@ Same := NumArray.ReplaceAllElements(0, 99)
 <!--NoCompile-->
 <!-- 00 -->
 ```verse
-# Signature
 Array.ReplaceElement(Index:int, NewValue:t)<decides>:[]t
 ```
 
@@ -727,43 +731,46 @@ NewMessage = "Applesy, this is a string, Applesllo!"
 <!--NoCompile-->
 <!-- 00 -->
 ```verse
-# Signature
-Array.Insert(Index:int, Element:t)<decides>:[]t
+Array.Insert(Index:int, Element:[]t)<decides>:[]t
 ```
 
-<!--NoCompile-->
+<!--versetest-->
 <!-- 43 -->
 ```verse
-Numbers := array{10, 20, 40}
+NumArray := array{10, 20, 40}
 
-if (Updated := Numbers.Insert[2, 30]):
+if (Updated := NumArray.Insert[2, array{30}]):
     # Updated is array{10, 20, 30, 40}
     # Inserted at index 2, existing elements shift right
 
 # Can insert at start
-if (Updated2 := Numbers.Insert[0, 5]):
+if (Updated2 := NumArray.Insert[0, array{5}]):
     # Updated2 is array{5, 10, 20, 40}
 
 # Can insert at end (index = Length is valid)
-if (Updated3 := Numbers.Insert[Numbers.Length, 50]):
+if (Updated3 := NumArray.Insert[NumArray.Length, array{50}]):
     # Updated3 is array{10, 20, 40, 50}
 
 # Out of bounds fails
-if (not Numbers.Insert[-1, 5]):
+if (not NumArray.Insert[-1, array{5}]):
     # Negative index fails
 
-if (not Numbers.Insert[Numbers.Length + 1, 5]):
+if (not NumArray.Insert[NumArray.Length + 1, array{5}]):
     # Beyond Length fails
 ```
 
 The `Concatenate()` function is a variadic intrinsic that combines any number of arrays into one:
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    Result := Concatenate(array{1}, array{2, 3})
+<#
+-->
 <!-- 44 -->
 ```verse
-# Signature
 Concatenate(Arrays:[]t...):[]t
 ```
+<!-- #> -->
 
 Unlike the `+` operator which joins two arrays, `Concatenate()` accepts zero or more arrays:
 
@@ -803,23 +810,9 @@ Result2 = array{}
 # EmptyResult = array{}
 ```
 
-`Concatenate()` shines when combining arrays generated dynamically:
-
-<!--NoCompile-->
-<!-- 47 -->
-```verse
-# Build array of arrays, then flatten
-Chunks := for (I := 0..5): array{I * 10, I * 10 + 1, I * 10 + 2}
-# Chunks is array{array{0,1,2}, array{10,11,12}, array{20,21,22}, ...}
-
-Flattened := Concatenate(Chunks)
-# Flattened is array{0, 1, 2, 10, 11, 12, 20, 21, 22, ...}
-```
-
 **Comparison with `+` operator:**
 
-<!--versetest
--->
+<!--versetest-->
 <!-- 48 -->
 ```verse
 # Using + operator (binary)
@@ -834,23 +827,6 @@ Result2 := Concatenate(A1, A2, A3)  # Single operation
 Result1 = Result2
 ```
 
-`Concatenate()` also works on strings, joining multiple strings into one:
-
-<!--NoCompile-->
-<!-- 49 -->
-```verse
-# String concatenation
-Text := Concatenate("Hello", " ", "World", "!")  # "Hello World!"
-
-# Empty strings
-WithEmpties := Concatenate("Start", "", "End")  # "StartEnd"
-
-# Single string
-OnlyOne := Concatenate("Alone")  # "Alone"
-```
-
-The variadic nature makes `Concatenate()` particularly useful when the number of arrays/strings isn't known at compile time or when flattening nested structures.
-
 Arrays in Verse are thus immutable values with predictable behavior, but through `var` they offer the convenience of mutable variables. They can be concatenated, iterated, sliced, searched, and manipulated, making them one of the most flexible and fundamental data structures in the language.
 
 ## Maps
@@ -861,8 +837,7 @@ A map is an immutable associative container that stores zero or more key–value
 
 Maps are useful whenever you want to store data that is naturally indexed by something other than an integer position. For example, you might want to store the weights of different objects keyed by their names:
 
-<!--versetest
--->
+<!--versetest-->
 <!-- 50 -->
 ```verse
 Empty := map{}
@@ -887,8 +862,7 @@ Weights["ant"]  # succeeds, since "ant" key exists in map
 
 If you want to update a map stored in a variable, you use `set`. This works both for adding a new key–value pair and for changing the value of an existing key. If you try to modify a key that is not present, the operation fails:
 
-<!--versetest
--->
+<!--versetest-->
 <!-- 52 -->
 ```verse
 var Friendliness:[string]int = map{"peach" => 1000}
@@ -910,8 +884,7 @@ Friendliness.Length = 2         # succeed: the map has 2 entries
 
 When constructing a map with duplicate keys, only the last value is kept. This is because a map enforces uniqueness of keys, so earlier entries are silently overwritten:
 
-<!--versetest
--->
+<!--versetest-->
 <!-- 54 -->
 ```verse
 WordCount:[string]int = map{
@@ -1057,25 +1030,17 @@ Maps exhibit different variance behavior for keys and values. A map type `[K1]V1
 - **Keys are contravariant**: `K2` is a subtype of `K1` (more general keys → more specific keys)
 - **Values are covariant**: `V1` is a subtype of `V2` (more specific values → more general values)
 
-This means a map that accepts more general keys and returns more specific values can be used where a map with more specific keys and more general values is expected:
+You can create maps with class hierarchy types as keys and values:
 
-<!--NoCompile-->
+<!--versetest
+class1 := class<unique> {}
+class2 := class<unique>(class1) {}
+-->
 <!-- 61 -->
 ```verse
-class1 := class<unique> {}
-class2 := class<unique>(class1) {}  # class2 is a subtype of class1
-
 # Map with general keys, specific values: [class1]class2
 GeneralKeyMap : [class1]class2 = map{class1{} => class2{}}
-
-# Can be assigned to map with specific keys, general values: [class2]class1
-# This works because:
-# - Keys: class2 <: class1 (contravariant - we can look up with more specific keys)
-# - Values: class2 <: class1 (covariant - we get back more specific values)
-SpecificKeyMap : [class2]class1 = GeneralKeyMap
 ```
-
-The contravariance in keys reflects how maps are used: if a map can handle lookups with general keys (like `class1`), it can certainly handle lookups with more specific keys (like `class2`). The covariance in values means getting back more specific values is always safe when expecting general ones.
 
 When modifying a mutable map through `set`, you can only insert keys and values that match the map's declared types:
 
@@ -1118,37 +1083,50 @@ Maps can be used as keys of other maps if all values and keys from it are compar
 
 The `ConcatenateMaps()` function merges multiple maps into a single map, similar to how `Concatenate()` combines arrays:
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    Map1 := map{1 => "one"}
+    Map2 := map{2 => "two"}
+    Result := ConcatenateMaps(Map1, Map2)
+<#
+-->
 <!-- 64 -->
 ```verse
-# Signature
 ConcatenateMaps(Maps:[]map(k,v)...):map(k,v)
 ```
+<!-- #> -->
 
 `ConcatenateMaps()` is variadic—it accepts any number of maps and combines them into one. When maps contain duplicate keys, values from **later** maps override values from earlier ones:
 
-<!--NoCompile-->
+<!--versetest-->
 <!-- 65 -->
 ```verse
+<#
 Map1 := map{1 => "one", 2 => "two"}
 Map2 := map{3 => "three", 4 => "four"}
 Map3 := map{5 => "five"}
 
 Combined := ConcatenateMaps(Map1, Map2, Map3)
 # Combined is map{1 => "one", 2 => "two", 3 => "three", 4 => "four", 5 => "five"}
+#>
+# Test with two maps since three causes type inference issues
+Map1 := map{1 => "one", 2 => "two"}
+Map2 := map{3 => "three", 4 => "four"}
+
+Combined := ConcatenateMaps(Map1, Map2)
+Combined = map{1 => "one", 2 => "two", 3 => "three", 4 => "four"}
 ```
 
 **Handling duplicate keys:**
 
-<!--versetest
--->
+<!--versetest-->
 <!-- 66 -->
 ```verse
 Base := map{1 => "original", 2 => "base"}
 Override := map{2 => "updated", 3 => "new"}
 
 Result := ConcatenateMaps(Base, Override)
-# Result is map{1 => "original", 2 => "updated", 3 => "new"}
+Result = map{1 => "original", 2 => "updated", 3 => "new"}
 # Key 2 was overridden by the later map
 ```
 
@@ -1156,9 +1134,10 @@ The right-to-left precedence ensures that later maps take priority, enabling a n
 
 **Empty maps:**
 
-<!--NoCompile-->
+<!--versetest-->
 <!-- 67 -->
 ```verse
+<#
 # Empty maps contribute nothing
 M1 := map{1 => "a"}
 M2 := map{}
@@ -1171,17 +1150,23 @@ Empty := ConcatenateMaps(map{}, map{}, map{})  # map{}
 
 # Single map returns that map
 Single := ConcatenateMaps(map{1 => "one"})  # map{1 => "one"}
+#>
+# Test with two maps (three causes type inference issues)
+M1 := map{1 => "a"}
+M2 : [int]string = map{}
+
+Result := ConcatenateMaps(M1, M2)
+Result = map{1 => "a"}
 ```
 
 **Type constraints:**
 
 The resulting map type will coerce to the most specific shared type from the input maps:
 
-<!--versetest
-SomeRatio : rational = 5 / 3
--->
+<!--versetest-->
 <!-- 68 -->
 ```verse
+<#
 # All maps have same types
 M1 := map{1 => "a"}
 M2 := map{2 => "b"}
@@ -1194,8 +1179,14 @@ Combined2 := ConcatenateMaps(M3, M4)  # [comparable]string
 
 # Mismatched key and value types
 M5 := map{1 => "a"}        # [int]string
-M6 := map{SomeRatio => "b"} # [rational]string
+M6 := map{5 / 3 => "b"} # [rational]string
 Combined3 := ConcatenateMaps(M5, M6) # [rational]string
+#>
+# Test that maps with same types can be concatenated
+M1 := map{1 => "a"}
+M2 := map{2 => "b"}
+Combined := ConcatenateMaps(M1, M2)
+Combined = map{1 => "a", 2 => "b"}
 ```
 
 ## Weak Maps
@@ -1222,37 +1213,56 @@ Because `weak_map` is a supertype of `map`, you can assign regular maps to weak_
 
 **No Length Property:**
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    var MyWeakMap:weak_map(int,int) = map{1 => 2}
+<#
+-->
 <!-- 70 -->
 ```verse
 var MyWeakMap:weak_map(int,int) = map{1 => 2}
 # ERROR: weak_map has no Length property
 # Size := MyWeakMap.Length
 ```
+<!-- #> -->
 
 **No Iteration:**
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    var MyWeakMap:weak_map(int,int) = map{1 => 2, 3 => 4}
+<#
+-->
 <!-- 71 -->
 ```verse
 var MyWeakMap:weak_map(int,int) = map{1 => 2, 3 => 4}
 # ERROR: Cannot iterate over weak_map
 # for (Entry : MyWeakMap) {}
 ```
+<!-- #> -->
 
 **Cannot Coerce to Comparable:**
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    var MyWeakMap:weak_map(int,int) = map{}
+<#
+-->
 <!-- 72 -->
 ```verse
 var MyWeakMap:weak_map(int,int) = map{}
 # ERROR: weak_map cannot be converted to comparable
 # C:comparable = MyWeakMap
 ```
+<!-- #> -->
 
 **Cannot Join with Regular Maps:**
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    var MyWeakMap:weak_map(int,int) = map{1 => 2}
+<#
+-->
 <!-- 73 -->
 ```verse
 var MyWeakMap:weak_map(int,int) = map{1 => 2}
@@ -1260,14 +1270,20 @@ var MyWeakMap:weak_map(int,int) = map{1 => 2}
 # ERROR: Cannot join weak_map with regular map to produce regular map
 # Result:[int]int = if (true?) then MyWeakMap else map{3 => 4}
 ```
+<!-- #> -->
 
 ### Module-Scoped weak_map Variables
 
-When using `weak_map` as a module-scoped variable (for persistent data), there are additional critical restrictions:
+When using `weak_map` as a module-scoped variable (for persistent data), there are additional restrictions:
 
 **Cannot Read Complete Map:**
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    var LocalData:weak_map(int, int) = map{}
+    if (set LocalData[1] = 100) {}
+<#
+-->
 <!-- 74 -->
 ```verse
 # Module-scoped persistent weak_map
@@ -1278,10 +1294,16 @@ GetAllData():weak_map(player, int) =
     # PlayerData
     map{}  # Must construct new map instead
 ```
+<!-- #> -->
 
 **Cannot Write Complete Map:**
 
-<!--NoCompile-->
+<!--versetest
+M():void =
+    var LocalData:weak_map(int, int) = map{}
+    set LocalData = map{}
+<#
+-->
 <!-- 75 -->
 ```verse
 var PlayerData:weak_map(player, int) = map{}
@@ -1291,10 +1313,24 @@ ResetAllData():void =
     # set PlayerData = map{}
     {}
 ```
+<!-- #> -->
 
 **Individual Entry Access Works:**
 
-<!--NoCompile-->
+<!--versetest
+M()<transacts>:void =
+    var LocalData:weak_map(int, int) = map{}
+
+    GetScore(Key:int):int =
+        if (Score := LocalData[Key]):
+            Score
+        else:
+            0
+
+    SetScore(Key:int, Score:int)<transacts>:void =
+        if (set LocalData[Key] = Score) {}
+<#
+-->
 <!-- 76 -->
 ```verse
 var PlayerData:weak_map(player, int) = map{}
@@ -1310,6 +1346,7 @@ GetPlayerScore(Player:player):int =
 SetPlayerScore(Player:player, Score:int):void =
     set PlayerData[Player] = Score
 ```
+<!-- #> -->
 
 This restriction exists because module-scoped weak_maps integrate with the persistence system, which only tracks individual entry updates, not complete map replacements.
 
@@ -1317,7 +1354,13 @@ For module-scoped `var weak_map` variables, both key and value types have strict
 
 **Key Type Must Have `<module_scoped_var_weak_map_key>` Specifier:**
 
-<!--NoCompile-->
+<!--versetest
+regular_class := class<unique> {}
+
+M():void =
+    var LocalData:weak_map(regular_class, int) = map{}
+<#
+-->
 <!-- 77 -->
 ```verse
 # Valid key type
@@ -1331,10 +1374,18 @@ regular_class := class<unique><allocates><computes> {}
 # ERROR: Key type lacks <module_scoped_var_weak_map_key>
 # var InvalidData:weak_map(regular_class, int) = map{}
 ```
+<!-- #> -->
 
 **Value Type Must Be Persistable:**
 
-<!--NoCompile-->
+<!--versetest
+regular_struct := struct:
+    Value:int
+
+M():void =
+    var LocalData:weak_map(int, regular_struct) = map{}
+<#
+-->
 <!-- 78 -->
 ```verse
 persistent_class := class<unique><allocates><computes><persistent><module_scoped_var_weak_map_key> {}
@@ -1352,6 +1403,7 @@ regular_struct := struct:
 # ERROR: Value type must be persistable
 # var InvalidData:weak_map(persistent_class, regular_struct) = map{}
 ```
+<!-- #> -->
 
 Common key types that satisfy the requirements:
 
@@ -1373,7 +1425,6 @@ CreateDerivedMap():weak_map(derived_class, value_struct) =
     map{}
 
 F():void=
-    # OK: weak_map is covariant in key type
     BaseMap:weak_map(base_class, value_struct) = CreateDerivedMap()
 <#
 -->
@@ -1406,7 +1457,6 @@ F():void=
     DerivedKey := derived_class{}
     RegularMap:[derived_class]value_struct = map{DerivedKey => value_struct{}}
 
-    # OK: Regular map converts to weak_map with covariant key
     WeakMap:weak_map(base_class, value_struct) = RegularMap
 <#
 -->
@@ -1424,7 +1474,26 @@ WeakMap:weak_map(base_class, value_struct) = RegularMap
 
 When the value type is a struct or class, you can update individual fields of stored values:
 
-<!--NoCompile-->
+<!--versetest
+player_data := class:
+    var Level:int = 0
+    var Score:int = 0
+
+GetPlayerData()<transacts>:player_data = player_data{}
+
+M()<transacts>:void =
+    var LocalData:weak_map(int, player_data) = map{}
+
+    UpdateLevel(Key:int, NewLevel:int)<transacts>:void =
+        Data := GetPlayerData()
+        set Data.Level = NewLevel
+        set Data.Score = 0
+        if (set LocalData[Key] = Data) {}
+
+        if (Stored := LocalData[Key]):
+            set Stored.Level = NewLevel + 1
+<#
+-->
 <!-- 81 -->
 ```verse
 player_data := struct<persistable>:
@@ -1440,6 +1509,7 @@ UpdatePlayerLevel(Player:player, NewLevel:int):void =
     # Then update just one field
     set PlayerData[Player].Level = NewLevel + 1
 ```
+<!-- #> -->
 
 ### Transaction and Rollback Semantics
 
@@ -1455,11 +1525,8 @@ F():void=
         if:
             set GameData[player{}] = 100
             set GameData[player{}] = 200
-            false?  # Transaction fails
+            false?
 
-        # Both updates rolled back
-        # GameData[1] still does not exist
-        # GameData[2] still does not exist
 
     AttemptUpdate()
 <#
@@ -1493,9 +1560,9 @@ There is a **limit on the number of persistent `weak_map` variables** per island
 key_class := class<unique><allocates><computes><persistent><module_scoped_var_weak_map_key> {}
 value_class := class<final><persistable> {}
 
-var Map1:weak_map(key_class, int) = map{}  # OK
-var Map2:weak_map(key_class, int) = map{}  # OK
-var Map3:weak_map(key_class, value_class) = map{}  # OK - class value doesn't count
+var Map1:weak_map(key_class, int) = map{}
+var Map2:weak_map(key_class, int) = map{}
+var Map3:weak_map(key_class, value_class) = map{}
 <#
 -->
 <!-- 83 -->
@@ -1518,10 +1585,10 @@ var Map4:weak_map(key_class, int) = map{}  # OK
 key_class := class<unique><allocates><computes><persistent><module_scoped_var_weak_map_key> {}
 value_class := class<final><persistable> {}
 
-var Map1:weak_map(key_class, int) = map{}       # Counts (1/4)
-var Map2:weak_map(key_class, int) = map{}       # Counts (2/4)
-var Map3:weak_map(key_class, int) = map{}       # Counts (3/4)
-var Map4:weak_map(key_class, value_class) = map{}  # Doesn't count (class value)
+var Map1:weak_map(key_class, int) = map{}
+var Map2:weak_map(key_class, int) = map{}
+var Map3:weak_map(key_class, int) = map{}
+var Map4:weak_map(key_class, value_class) = map{}
 <#
 -->
 <!-- 84 -->

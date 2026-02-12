@@ -33,9 +33,8 @@ GetRat(X:rational):void = Print("Rational: {X}")
 MyRat:rational = 1/3
 MyInt:int = -10
 assert: 
-    GetRat(MyInt)  # OK -- int is a subtype of rational
+    GetRat(MyInt)
 
-#GetInt(MyRat)  # Compile error -  rational is not a subtype of int
 <# 
 -->
 <!-- 01 -->
@@ -69,6 +68,7 @@ Classes and interfaces introduce nominal subtyping through
 inheritance. When a class inherits from another class or implements an
 interface, it explicitly declares a subtyping relationship:
 
+<!--versetest 02 -->
 <!-- 02 -->
 ```verse
 vehicle := class:
@@ -125,6 +125,7 @@ These conversion functions are failable - they have the `<decides>`
 effect and will fail if passed non-finite values like `NaN` or
 `Inf`. The explicit failure forces you to handle edge cases:
 
+<!--versetest 05 -->
 <!-- 05 -->
 ```verse
 SafeConvert(Value:float):int =
@@ -198,6 +199,7 @@ GetValue(UseString:logic):any =
 
 Logical OR with disjoint types coerces to `any`:
 
+<!--versetest 12 -->
 <!-- 12 -->
 ```verse
 # Returns either int or string
@@ -225,6 +227,25 @@ perform runtime type checks. These casts succeeds and return the
 casted value (`TargetType`), and failing if the value is not of
 a valid target type or a subtype:
 
+<!--versetest 17
+component := class<castable>:
+    Name:string = "Component"
+
+physics_component := class<castable>(component):
+    Velocity:float = 0.0
+
+render_component := class<castable>(component):
+    Material:string = "default"
+
+ProcessComponent(Comp:component):void =
+    if (PhysicsComp := physics_component[Comp]):
+        Print("Physics velocity: {PhysicsComp.Velocity}")
+    else if (RenderComp := render_component[Comp]):
+        Print("Render material: {RenderComp.Material}")
+    else:
+        Print("Unknown component type")
+<#
+-->
 <!-- 17 -->
 ```verse
 # Define a class hierarchy
@@ -249,6 +270,7 @@ ProcessComponent(Comp:component):void =
         # Neither type matched
         Print("Unknown component type")
 ```
+<!-- #> -->
 
 The cast expression evaluates to `false` if the runtime type doesn't
 match, allowing you to use it directly in conditionals. The optional
@@ -266,7 +288,7 @@ player := class<unique>(entity):
 assert:
 	P := player{ID := 1, Name := "Alice"}
 	if (E := entity[P]):
-		E = P  # True - same instance
+		E = P
 <#
 -->
 <!-- 18 -->
@@ -290,7 +312,36 @@ Fallible casts work **only with class and interface types**. You
 cannot dynamically cast from or to primitive types, structs, arrays,
 or other value types:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3512, 3509, 3547):
+    component := class<castable>{}
+    Comp := component[42]
+
+assert_semantic_error(3512, 3509, 3547):
+    component := class<castable>{}
+    Comp := component[3.14]
+
+assert_semantic_error(3512, 3509, 3547):
+    component := class<castable>{}
+    Comp := component["text"]
+
+assert_semantic_error(3512, 3509, 3547):
+    component := class<castable>{}
+    Comp := component[array{1,2}]
+
+assert_semantic_error(3512, 3509, 3547, 3512):
+    component := class<castable>{}
+    Value := int[component{}]
+
+assert_semantic_error(3512, 3552, 3547, 3512):
+    component := class<castable>{}
+    Value := logic[component{}]
+
+assert_semantic_error(3512, 3552, 3547, 3512):
+    component := class<castable>{}
+    Value := (?int)[component{}]
+<#
+-->
 <!-- 19 -->
 ```verse
 component := class<castable>{}
@@ -306,6 +357,7 @@ Value := int[component{}]      # class to int - not allowed
 Value := logic[component{}]    # class to logic - not allowed
 Value := (?int)[component{}]   # class to option - not allowed
 ```
+<!-- #> -->
 
 The restriction exists because fallible casts rely on runtime type
 information that only classes and interfaces maintain. Value types
@@ -361,17 +413,16 @@ render_component := class<castable>(component){}
 
 ComponentType:castable_subtype(component) = physics_component
 
-# Cast using the stored type
 TestComponent(Comp:component, ExpectedType:castable_subtype(component)):logic =
     if (Specific := ExpectedType[Comp]):
-        true  # Component matches expected type
+        true
     else:
         false
 
 assert:
    P := physics_component{}
-   TestComponent(P, physics_component)  # true
-   TestComponent(P, render_component)   # false
+   TestComponent(P, physics_component)
+   TestComponent(P, render_component)
 <#
 -->
 <!-- 22 -->
@@ -442,6 +493,7 @@ requirements that types must satisfy to be valid arguments. This
 creates a powerful system for writing generic code that is both
 flexible and type-safe.
 
+<!--versetest-->
 <!-- 24 -->
 ```verse
 # Simple subtype constraint
@@ -453,7 +505,15 @@ Process(Value:t where t:subtype(comparable)):void =
 Using the same type in multiple constraints is not yet supported, when
 implemented, it will allow to write code such as:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3588, 3588, 3503, 3503, 3506, 3532):
+    printable := interface:
+        PrintIt():void
+    F(In:t where t:subtype(comparable), t:subtype(printable)):t =
+        Print("Processing: {In}")
+        In
+<#
+-->
 <!-- 25 -->
 ```verse
 # Multiple constraints on the same type
@@ -461,9 +521,11 @@ F(In:t where t:subtype(comparable), t:subtype(printable)):t = # Not supported
     Print("Processing: {In}")
     In
 ```
+<!-- #> -->
 
 Where clauses become more powerful when working with multiple type parameters:
 
+<!--versetest-->
 <!-- 26 -->
 ```verse
 # Independent constraints on different parameters
@@ -496,6 +558,7 @@ ApplyTwice(F:type{_(:t):t}, Value:t where t:type):t =
 
 Where clauses enable sophisticated generic programming patterns:
 
+<!--versetest-->
 <!-- 28 -->
 ```verse
 MapFunction(F:type{_(:a):b}, Container:[]a where a:type, b:type):[]b =
@@ -621,6 +684,7 @@ MinFinite:finite = -1.7976931348623157e+308
 IEEE 754 distinguishes between `+0.0` and `-0.0`. In verse Zero is just Zero,
 with no distinction between positve or negative.
 
+<!--versetest-->
 When any expression evaluates to Zero, the sign is discarded:
 <!-- 34 -->
 ```verse
@@ -674,7 +738,22 @@ expressions are allowed:
 **Only Literal Values:** Constraints must use literal numbers, not
 variables or expressions:
 
-<!--NoCompile-->
+<!--versetest
+bounded := type{_X:float where _X < 100.0}
+
+assert_semantic_error(3502):
+    Limit:float = 100.0
+    bad_type := type{_X:float where _X < Limit}
+
+assert_semantic_error(3512, 3502):
+    GetMax():float = 100.0
+    bad_type := type{_X:float where _X < GetMax()}
+
+assert_semantic_error(3506, 3502):
+    config := module{Max:float = 100.0}
+    bad_type := type{_X:float where _X < (config:)Max}
+<#
+-->
 <!-- 37 -->
 ```verse
 # Valid: literal float
@@ -682,7 +761,7 @@ bounded := type{_X:float where _X < 100.0}
 
 # Invalid: cannot use variables
 Limit:float = 100.0
-bad_type := type{_X:float where _X < Limit}  # ERROR 
+bad_type := type{_X:float where _X < Limit}  # ERROR
 
 # Invalid: cannot use function calls
 GetMax():float = 100.0
@@ -692,6 +771,7 @@ bad_type := type{_X:float where _X < GetMax()}  # ERROR
 config := module{Max:float = 100.0}
 bad_type := type{_X:float where _X < (config:)Max}  # ERROR
 ```
+<!-- #> -->
 
 This ensures constraints are statically known at compile time.
 
@@ -746,7 +826,7 @@ GetInputFromUser<public>()<computes>:float = 50.0
 ProcessPercent<public>(P:percent):void = {}
 ShowError<public>(Msg:string):void = {}
 assert:
-   Valid:percent = 0.5  # OK
+   Valid:percent = 0.5
    UserInput:float = GetInputFromUser()
    if (Value := percent[UserInput]):
        ProcessPercent(Value)
@@ -783,8 +863,8 @@ Refinement types work as parameter and return types:
 finite := type{_X:float where -Inf < _X, _X < Inf}
 Half(X:finite):float = X / 2.0
 assert:
-   Half(100.0)  # Returns 50.0
-   Half(1.0)    # Returns 0.5
+   Half(100.0)
+   Half(1.0)
 <#
 -->
 <!-- 41 -->
@@ -810,8 +890,8 @@ negative_percent := type{_X:float where _X <= 0.0, _X >= -1.0}
 
 assert:
    MakePercent():percent = 0.5
-   NegValue:negative_percent = -MakePercent()  # -0.5 valid
-   NegValue2:negative_percent = ---0.7  # Triple negation = -0.7
+   NegValue:negative_percent = -MakePercent()
+   NegValue2:negative_percent = ---0.7
 <#
 -->
 <!-- 42 -->
@@ -855,8 +935,8 @@ negative := type{_X:float where _X < 0.0}
 F(X:positive):float = X
 F(X:negative):float = X + 1.0
 assert:
-   F(1.0)=1.0   # Returns 1.0 (positive overload)
-   F(-1.0)=0.0  # Returns 0.0 (negative overload)
+   F(1.0)=1.0
+   F(-1.0)=0.0
 <#
 -->
 <!-- 44 -->
@@ -902,13 +982,20 @@ operator'<>'(X:t, Y:t where t:subtype(comparable))<decides>:t
 The signatures requires that both operands be subtypes of comparable
 and the return type is the least upper bound of their types.
 
-<!--NoCompile-->
+<!--versetest
+assert:
+    0 = 0
+    0.0 = 0.0
+
+<#
+-->
 <!-- 46 -->
 ```verse
 0 = 0        # Succeeds - both are int
 0.0 = 0.0    # Succeeds - both are float
 0 = 0.0      # Fails - there is no implicit conversion from int to float
 ```
+<!-- #> -->
 
 Here is an example that highlights how the return type of `=` is computed:
 
@@ -1011,7 +1098,17 @@ functions expecting arrays to accept tuples, increasing flexibility.
 
 You cannot create overloads where one parameter is a specific comparable type and another is the general `comparable` type, as this creates ambiguity:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(X:int):void = {}
+    F(X:comparable):void = {}
+
+assert_semantic_error(3532):
+    unique_class := class<unique>{}
+    G(X:unique_class):void = {}
+    G(X:comparable):void = {}
+<#
+-->
 <!-- 50 -->
 ```verse
 # Not allowed - ambiguous overloads
@@ -1023,6 +1120,7 @@ unique_class := class<unique>{}
 G(X:unique_class):void = {}
 G(X:comparable):void = {}  # ERROR: unique_class is comparable
 ```
+<!-- #> -->
 
 However, you can overload with non-comparable types:
 
@@ -1233,31 +1331,51 @@ Generators have strict type conversion rules to maintain safety:
 
 **Cannot convert arrays to generators:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3547, 3509):
+    Numbers := array{1, 2, 3}
+    Seq:generator(int) = Numbers
+<#
+-->
 <!-- 61 -->
 ```verse
 Numbers := array{1, 2, 3}
 # Seq:generator(int) = Numbers  # ERROR 3509
 ```
+<!-- #> -->
 
 **Cannot convert between incompatible element types:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3512, 3547, 3509):
+    GetIntegerSequence():[]int = array{1, 2, 3}
+    IntSeq := GetIntegerSequence()
+    FloatSeq:generator(float) = IntSeq
+<#
+-->
 <!-- 62 -->
 ```verse
 IntSeq := GetIntegerSequence()
 # FloatSeq:generator(float) = IntSeq  # ERROR 3509
 ```
+<!-- #> -->
 
 **Cannot index generators like arrays:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3512, 3547, 3512, 3509):
+    GetIntegerSequence():[]int = array{1, 2, 3}
+    Seq := GetIntegerSequence()
+    Value := Seq[0]
+<#
+-->
 <!-- 63 -->
 ```verse
 Seq := GetIntegerSequence()
 # Value := Seq[0]  # ERROR 3509
 # Generators don't support random access
 ```
+<!-- #> -->
 
 **Converting generators to arrays:**
 
@@ -1287,7 +1405,7 @@ GetDogSequence():[]dog = array{}
 GetAnimalSequence():[]animal = array{}
 assert:
    DogStream:generator(dog) = GetDogSequence()
-   AnimalStream:generator(animal) = DogStream  # OK - covariance
+   AnimalStream:generator(animal) = DogStream
    GeneralStream:generator(animal) = GetAnimalSequence()
 <#
 -->
@@ -1591,7 +1709,34 @@ InternalAlias := PrivateClass  # Defaults to internal
 
 This restriction applies to all type constructs:
 
-<!--NoCompile-->
+<!--versetest
+PrivateType := class{}
+
+assert_semantic_error(3593):
+    Pub1<public> := ?PrivateType
+
+assert_semantic_error(3593):
+    Pub2<public> := []PrivateType
+
+assert_semantic_error(3593):
+    Pub3<public> := [int]PrivateType
+
+assert_semantic_error(3593):
+    Pub4<public> := [PrivateType]int
+
+assert_semantic_error(3593):
+    Pub5<public> := tuple(int, PrivateType)
+
+assert_semantic_error(3593):
+    Pub6<public> := PrivateType -> int
+
+assert_semantic_error(3593):
+    Pub7<public> := int -> PrivateType
+
+assert_semantic_error(3593):
+    Pub8<public> := type{_():PrivateType}
+<#
+-->
 <!-- 95 -->
 ```verse
 PrivateType := class{}
@@ -1606,6 +1751,7 @@ PrivateType := class{}
 # Pub7<public> := int -> PrivateType     # Function return
 # Pub8<public> := type{_():PrivateType}  # Function type
 ```
+<!-- #> -->
 
 ### Requirement
 

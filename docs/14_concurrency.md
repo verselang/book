@@ -77,7 +77,15 @@ Concurrent operations require the `<suspends>` effect specifier (see
 concurrency expressions, call other suspending functions, and
 cooperatively yield execution:
 
-<!--verse-->
+<!--versetest
+MyAsyncFunction()<suspends>:void =
+    Sleep(1.0)
+    Print("One second later!")
+
+MyImmediateFunction():void =
+    Print("This happens immediately")
+<#
+-->
 <!-- 01 -->
 ```verse
 # Function marked with suspends can use async expressions
@@ -90,6 +98,7 @@ MyImmediateFunction():void =
     # Sleep(1.0)  # ERROR: Cannot use Sleep without suspends
     Print("This happens immediately")
 ```
+<!-- #> -->
 
 The `<suspends>` effect propagates through the call chain—any function
 calling a suspending function must itself be marked `<suspends>`.
@@ -149,9 +158,9 @@ AsyncOperation2()<suspends>:int=1
 AsyncOperation3()<suspends>:int=1
 F()<suspends>:void={
 Results := sync:
-    AsyncOperation1()  # Returns value1
-    AsyncOperation2()  # Returns value2
-    AsyncOperation3()  # Returns value3
+    AsyncOperation1()
+    AsyncOperation2()
+    AsyncOperation3()
 Print("All operations complete with results: {Results(0)} {Results(1)} {Results(2)}")
 }
 <#
@@ -253,11 +262,11 @@ FastOperation()<suspends>   :int=0
 MediumOperation()<suspends>   :int=0
 F()<suspends>:void={
 Winner := race:
-    SlowOperation()     # Takes 5 seconds
-    FastOperation()     # Takes 1 second - wins!
-    MediumOperation()   # Takes 3 seconds
+    SlowOperation()
+    FastOperation()
+    MediumOperation()
 
-Print("Winner result: {Winner}")  # Prints FastOperation's result
+Print("Winner result: {Winner}")
 }
 <#
 -->
@@ -309,8 +318,8 @@ GetB()<suspends>:derived_b = derived_b{Value := 2}
 
 F()<suspends>:void={
 Result:base_class = race:
-    GetA()  # Returns derived_a
-    GetB()  # Returns derived_b
+    GetA()
+    GetB()
 SameTypeResult:int = race:
     block:
         Sleep(1.0)
@@ -363,14 +372,14 @@ F()<suspends>:void={
 WinnerID := race:
     block:
         SlowOperation()
-        1  # Return 1 if this wins
+        1
     block:
         FastOperation()
-        2  # Return 2 if this wins
+        2
     block:
         loop:
             InfiniteOperation()
-        3  # Never returns
+        3
 
 case(WinnerID):
     1 => Print("Slow operation won somehow!")
@@ -416,12 +425,11 @@ QuickCheck() <suspends>  :int=0
 MediumTask() <suspends>  :int=0
 F()<suspends>:void={
 FirstResult := rush:
-    LongBackgroundTask()   # Continues after rush completes
-    QuickCheck()          # Finishes first
-    MediumTask()          # Also continues after rush
+    LongBackgroundTask()
+    QuickCheck()
+    MediumTask()
 
 Print("First result: {FirstResult}")
-# LongBackgroundTask and MediumTask are still running!
 }
 <#
 -->
@@ -688,7 +696,7 @@ BackgroundWork()<transacts><suspends>:void={Sleep(1.0)}
 F()<suspends>:void= {
 LongTask:task(void) = spawn{BackgroundWork()}
 LongTask.Cancel()
-LongTask.Cancel()  # No error
+LongTask.Cancel()
 }
 <#
 -->
@@ -860,7 +868,7 @@ NextTick()  # Waits one simulation update, checks cancellation
 <!--versetest
 SomeAsyncFunction<public>()<suspends>:void = {}
 F()<suspends>:void={
-Result := SomeAsyncFunction()  # Suspension point at the call
+Result := SomeAsyncFunction()
 }
 <#
 -->
@@ -872,7 +880,15 @@ Result := SomeAsyncFunction()  # Suspension point at the call
 
 **Structured concurrency expressions:**
 
-<!--NoCompile-->
+<!--versetest
+Op1()<suspends>:void = {}
+Op2()<suspends>:void = {}
+M()<suspends>:void =
+    sync:
+        Op1()
+        Op2()
+<#
+-->
 <!-- 33 -->
 ```verse
 sync:  # Suspension point when entering sync
@@ -880,6 +896,7 @@ sync:  # Suspension point when entering sync
     Op2()
 # Suspension point when sync completes
 ```
+<!-- #> -->
 
 **Task operations:**
 
@@ -887,7 +904,7 @@ sync:  # Suspension point when entering sync
 ComputeValue<public>()<suspends>:int = 42
 F()<suspends>:void={
 MyTask:task(int) = spawn{ComputeValue()}
-Result := MyTask.Await()  # Suspension point while waiting
+Result := MyTask.Await()
 }
 <#
 -->
@@ -1084,7 +1101,13 @@ CancellableWork()<suspends>:void =
 defer blocks **cannot** contain suspending operations. This ensures
 cleanup happens immediately without delay:
 
-<!--NoCompile-->
+<!--versetest
+ValidDefer()<suspends>:void =
+    defer:
+        Print("Cleanup happens immediately")
+    Sleep(1.0)
+<#
+-->
 <!-- 44 -->
 ```verse
 # ERROR: Cannot use suspending operations in defer
@@ -1093,6 +1116,7 @@ BadDefer()<suspends>:void =
         Sleep(1.0)  # ERROR: defer blocks cannot suspend
         NextTick()  # ERROR: defer blocks cannot suspend
 ```
+<!-- #> -->
 
 This restriction is essential—if defer blocks could suspend, cleanup
 could be delayed indefinitely, defeating their purpose as guaranteed
@@ -1130,7 +1154,13 @@ its defer blocks execute, not those of calling functions.
 
 The fundamental timing function that suspends execution for a specified duration:
 
-<!--NoCompile-->
+<!--versetest
+M()<suspends>:void =
+    Sleep(1.0)
+
+    Sleep(0.0)
+<#
+-->
 <!-- 46 -->
 ```verse
 # Suspend for 1 second
@@ -1139,6 +1169,7 @@ Sleep(1.0)
 # Suspend for one frame (smallest possible delay)
 Sleep(0.0)
 ```
+<!-- #> -->
 
 The `Sleep(0.0)` pattern deserves special attention. While it doesn't
 add actual delay, it serves two critical purposes:
@@ -1181,7 +1212,15 @@ update (tick). Unlike `Sleep(0.0)` which yields control and may resume
 in the same tick if no other work is pending, `NextTick()` guarantees
 that at least one simulation update will occur before resuming:
 
-<!--NoCompile-->
+<!--versetest
+M()<suspends>:void =
+    NextTick()
+
+    NextTick()
+    NextTick()
+    NextTick()
+<#
+-->
 <!-- 48 -->
 ```verse
 # Wait for exactly one simulation tick
@@ -1192,6 +1231,7 @@ NextTick()  # Wait 1 tick
 NextTick()  # Wait another tick
 NextTick()  # Wait a third tick
 ```
+<!-- #> -->
 
 `NextTick()` is essential for game logic that needs to be synchronized with simulation updates:
 
@@ -1205,7 +1245,7 @@ GameLoop()<suspends>:void =
         ProcessGameLogic()
         UpdatePhysics()
         CheckCollisions()
-        NextTick()  # Wait for next simulation update
+        NextTick()
 
 DelayByTicks(TickCount:int)<suspends>:void =
     for (I := 1..TickCount):
@@ -1327,7 +1367,21 @@ Within a single transaction, `GetSecondsSinceEpoch()` returns the
 **same value** every time it's called. This ensures deterministic
 behavior and prevents time-related race conditions:
 
-<!--NoCompile-->
+<!--versetest
+DoExpensiveWork()<transacts>:void = {}
+PerformDatabaseUpdates()<transacts>:void = {}
+
+MeasureTransactionTime()<transacts>:void =
+    StartTime := GetSecondsSinceEpoch()
+
+    DoExpensiveWork()
+    PerformDatabaseUpdates()
+
+    EndTime := GetSecondsSinceEpoch()
+
+    Duration := EndTime - StartTime
+<#
+-->
 <!-- 53 -->
 ```verse
 MeasureTransactionTime()<transacts>:void =
@@ -1343,6 +1397,7 @@ MeasureTransactionTime()<transacts>:void =
     # Time is "frozen" within the transaction
     Duration := EndTime - StartTime  # Always 0.0
 ```
+<!-- #> -->
 
 This transactional consistency is intentional—it prevents
 non-deterministic behavior where transaction retry could produce
@@ -1396,7 +1451,21 @@ ElapsedSeconds := Timer.GetElapsed()
 
 **Event logging and debugging:**
 
-<!--NoCompile-->
+<!--versetest
+logger := class:
+    var EventLog:[]tuple(float, string) = array{}
+
+    Log(Message:string)<transacts>:void =
+        Timestamp := GetSecondsSinceEpoch()
+        set EventLog = EventLog + array{(Timestamp, Message)}
+
+    GetRecentEvents(LastSeconds:float)<transacts>:[]string =
+        Now := GetSecondsSinceEpoch()
+        Cutoff := Now - LastSeconds
+        for (Entry : EventLog, Entry(0) >= Cutoff):
+            Entry(1)
+<#
+-->
 <!-- 55 -->
 ```verse
 logger := class:
@@ -1412,6 +1481,7 @@ logger := class:
         for ((Time, Message) : EventLog, Time >= Cutoff):
             Message
 ```
+<!-- #> -->
 
 **Session tracking:**
 <!-- 56 -->
@@ -1433,7 +1503,7 @@ PerformAction():void={}
 ShowCooldownMessage():void={}
 rate_limiter := class:
     var LastAction:float = 0.0
-    Cooldown:float = 5.0  # 5 second cooldown
+    Cooldown:float = 5.0
 
     CanAct()<transacts><decides>:void =
         Now := GetSecondsSinceEpoch()
@@ -1474,7 +1544,19 @@ else:
 
 When interfacing with external systems, databases, or APIs that use Unix timestamps:
 
-<!--NoCompile-->
+<!--versetest
+MyPlayerID:string = "player123"
+SendToAnalytics<public>(EventType:string, Timestamp:float, PlayerID:string):void = {}
+FetchServerTime():float = 1716411409.0
+
+M():void =
+    SendToAnalytics("player_action", GetSecondsSinceEpoch(), MyPlayerID)
+
+    ServerTime := FetchServerTime()
+    LocalTime := GetSecondsSinceEpoch()
+    ClockSkew := LocalTime - ServerTime
+<#
+-->
 <!-- 58 -->
 ```verse
 # Timestamp for external analytics
@@ -1490,6 +1572,7 @@ ServerTime := FetchServerTime()
 LocalTime := GetSecondsSinceEpoch()
 ClockSkew := LocalTime - ServerTime
 ```
+<!-- #> -->
 
 **Important notes:**
 
@@ -1544,12 +1627,10 @@ ProcessValue(:int):void={}
 F()<suspends>:void={
 GameEvent := event(int){}
 
-# Producer: signals values to the event
 ProducerTask()<suspends>:void =
     Sleep(1.0)
     GameEvent.Signal(42)
 
-# Consumer: awaits values from the event
 ConsumerTask()<suspends>:void =
     Value := GameEvent.Await()
     ProcessValue(Value)
@@ -1606,7 +1687,7 @@ Result := race:
         option{Value}
     block:
         Sleep(5.0)
-        false  # Timeout - no value received
+        false
 }
 <#
 -->
@@ -1809,7 +1890,26 @@ preventing partial setups that could cause subtle bugs.
 
 **Request-Response:** Use basic events to implement request-response patterns between systems:
 
-<!--NoCompile-->
+<!--versetest
+FindPath(Start:int, Goal:int):void = {}
+
+pathfinding_system := class:
+    PathRequest:event(tuple(int, int)) = event(tuple(int, int)){}
+    PathResponse:event(int) = event(int){}
+
+    PathfindingService()<suspends>:void =
+        loop:
+            Request := PathRequest.Await()
+            Start := Request(0)
+            Goal := Request(1)
+            FindPath(Start, Goal)
+            PathResponse.Signal(42)
+
+    RequestPath(Start:int, Goal:int)<suspends>:int =
+        PathRequest.Signal((Start, Goal))
+        PathResponse.Await()
+<#
+-->
 <!-- 68 -->
 ```verse
 PathRequest := event(tuple(int, int)){}  # (start, goal)
@@ -1825,6 +1925,7 @@ RequestPath(Start:int, Goal:int)<suspends>:int =
     PathRequest.Signal((Start, Goal))
     PathResponse.Await()
 ```
+<!-- #> -->
 
 **State Broadcasting:** Use sticky events for state that multiple systems need to observe:
 
@@ -1964,7 +2065,20 @@ hundreds or thousands of times, allowing rush or branch directly would
 create that many background tasks, potentially overwhelming the
 system.
 
-<!--NoCompile-->
+<!--versetest
+Operation1()<suspends>:void = {}
+Operation2()<suspends>:void = {}
+
+ProcessWithRush(I:int)<suspends>:void =
+    rush:
+        Operation1()
+        Operation2()
+
+M()<suspends>:void =
+    for (I := 0..10):
+        ProcessWithRush(I)
+<#
+-->
 <!-- 76 -->
 ```verse
 # Not allowed
@@ -1982,6 +2096,7 @@ ProcessWithRush(I:int)<suspends>:void =
 for (I := 0..10):
     ProcessWithRush(I)  # OK
 ```
+<!-- #> -->
 <!--verse
 }
 -->

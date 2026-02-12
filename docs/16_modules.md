@@ -117,6 +117,21 @@ maps to the module hierarchy.
 
 You can create modules within a `.verse` file using the following syntax:
 
+<!--versetest
+m := module{
+module1 := module:
+    MyConstant<public>:int = 42
+
+    MyClass<public> := class:
+        Value:int = 0
+
+module2 := module
+{
+    AnotherConstant<public>:string = "Hello"
+}
+}
+<#
+-->
 <!-- 01 -->
 ```verse
 # Colon syntax
@@ -134,9 +149,22 @@ module2 := module
     AnotherConstant<public>:string = "Hello"
 }
 ```
+<!-- #> -->
 
 Modules can contain other modules, creating a hierarchy:
 
+<!--versetest
+m := module{
+base_module<public> := module:
+    submodule<public> := module:
+        submodule_class<public> := class:
+            Value:int = 100
+
+    module_class<public> := class:
+        Name:string = ""
+}
+<#
+-->
 <!-- 02 -->
 ```verse
 base_module<public> := module:
@@ -147,9 +175,20 @@ base_module<public> := module:
     module_class<public> := class:
         Name:string = ""
 ```
+<!-- #> -->
 
 The file structure `module_folder/base_module` is equivalent to:
 
+<!--versetest
+m := module{
+module_folder := module:
+    base_module := module:
+        submodule := module:
+            submodule_class := class:
+                Value:int = 0
+}
+<#
+-->
 <!-- 03 -->
 ```verse
 module_folder := module:
@@ -158,6 +197,7 @@ module_folder := module:
             submodule_class := class:
                 # Class definition
 ```
+<!-- #> -->
 
 ### Restrictions
 
@@ -219,6 +259,37 @@ This requirement makes module interfaces explicit and helps with separate compil
 
 Modules can contain these categories of definitions:
 
+<!--versetest
+m := module{
+utilities := module:
+    Version:int = 1
+    AppName:string = "MyApp"
+
+    Calculate(X:int):int = X * 2
+
+    data_class := class:
+        Value:int
+
+    data_interface := interface:
+        GetValue():int
+
+    data_struct := struct:
+        X:float
+        Y:float
+
+    status := enum:
+        Active
+        Inactive
+
+    nested := module:
+        NestedFunction():void = {}
+
+    coordinate := tuple(float, float)
+
+    positive_int := type{X:int where X > 0}
+}
+<#
+-->
 <!-- 06 -->
 ```verse
 utilities := module:
@@ -255,6 +326,7 @@ utilities := module:
     # Refinement types
     positive_int := type{X:int where X > 0}
 ```
+<!-- #> -->
 
 Unlike functions, classes, or data values, modules are not first-class
 citizens in Verse. You cannot treat modules as values that can be
@@ -441,14 +513,11 @@ approaches:
 game_systems := module:
     inventory<public> := module{}
 m:=module{
-# Method 1: Import parent first, then child
 using { game_systems }
-using { inventory }  # Assumes inventory is nested in game_systems
+using { inventory }
 
-# Method 2: Direct path to nested module
 using { game_systems.inventory }
 
-# Method 3: Import parent and access child through qualification
 using { game_systems }
 }
 <#
@@ -485,6 +554,16 @@ file needs its own import statements for external modules. However,
 files within the same module can see each other's definitions without
 imports:
 
+<!--versetest
+m := module{
+health_component := class:
+    CurrentHealth:float = 100.0
+
+armor_component := class:
+    HealthComp:health_component = health_component{}
+}
+<#
+-->
 <!-- 15 -->
 ```verse
 # File: player_module/health.verse
@@ -496,6 +575,7 @@ health_component := class:
 armor_component := class:
     HealthComp:health_component = health_component{}
 ```
+<!-- #> -->
 
 ### Import Conflicts
 
@@ -655,6 +735,21 @@ functions. This is critical for evolution compatibility—when external
 modules add new public definitions after your code is published,
 `(local:)` ensures your local definitions take precedence.
 
+<!--versetest
+m := module{
+ExternalModule<public> := module:
+    ShadowX<public>:int = 10
+
+MyModule := module:
+    using{ExternalModule}
+
+
+    Foo():float =
+        (local:)ShadowX:float = 0.0
+        (local:)ShadowX
+}
+<#
+-->
 <!-- 23 -->
 ```verse
 # External module adds ShadowX after your code published
@@ -674,28 +769,56 @@ MyModule := module:
         (local:)ShadowX:float = 0.0  # Local variable
         (local:)ShadowX              # Returns 0.0, not 10
 ```
+<!-- #> -->
 
 The `(local:)` qualifier can be used in these contexts:
 
 **Function parameters:**
 
+<!--versetest
+m := module{
+ProcessValue((local:)Value:int):int =
+    (local:)Value + 1
+}
+<#
+-->
 <!-- 24 -->
 ```verse
 ProcessValue((local:)Value:int):int =
     (local:)Value + 1
 ```
+<!-- #> -->
 
 **Function body data definitions:**
 
+<!--versetest
+m := module{
+Compute():int =
+    (local:)Result:int = 42
+    (local:)Result
+}
+<#
+-->
 <!-- 25 -->
 ```verse
 Compute():int =
     (local:)Result:int = 42
     (local:)Result
 ```
+<!-- #> -->
 
 **For loop variables:**
 
+<!--versetest
+m := module{
+SumValues():int =
+    var Total:int = 0
+    for ((local:)I := 0..10):
+        set Total += (local:)I
+    Total
+}
+<#
+-->
 <!-- 26 -->
 ```verse
 SumValues():int =
@@ -704,6 +827,7 @@ SumValues():int =
         set Total += (local:)I
     Total
 ```
+<!-- #> -->
 
 **If conditions:**
 
@@ -721,6 +845,15 @@ CheckValue():float =
 
 **Block scopes:**
 
+<!--versetest
+m := module{
+ComputeInBlock():int =
+    block:
+        (local:)Temp:int = 10
+        (local:)Temp * 2
+}
+<#
+-->
 <!-- 28 -->
 ```verse
 ComputeInBlock():int =
@@ -728,6 +861,7 @@ ComputeInBlock():int =
         (local:)Temp:int = 10
         (local:)Temp * 2
 ```
+<!-- #> -->
 
 **Class blocks:**
 
@@ -1015,6 +1149,27 @@ Local scope `using` takes a local variable or parameter identifier
 (not a module path) and makes its members accessible without explicit
 qualification:
 
+<!--versetest
+m := module{
+entity := class:
+    Name:string = "Entity"
+    var Health:int = 100
+
+    UpdateHealth(Amount:int):void =
+        set Health = Health + Amount
+
+ProcessEntity(E:entity):void =
+    Print(E.Name)
+    E.UpdateHealth(-10)
+    Print("{E.Health}")
+
+    using{E}
+    Print(Name)
+    UpdateHealth(-10)
+    Print("{Health}")
+}
+<#
+-->
 <!-- 46 -->
 ```verse
 entity := class:
@@ -1036,6 +1191,7 @@ ProcessEntity(E:entity):void =
     UpdateHealth(-10)   # Inferred as: E.UpdateHealth(-10)
     Print("{Health}")       # Inferred as: E.Health
 ```
+<!-- #> -->
 
 The `using{E}` expression makes all members of `E` accessible without the `E.` prefix within the current scope.
 
@@ -1144,6 +1300,34 @@ The `using` statement acts as a declaration point - inference is not retroactive
 
 You can have multiple `using` expressions in the same scope, but conflicting member names must be explicitly qualified:
 
+<!--versetest
+m := module{
+player_stats := class:
+    Health:int = 100
+    Mana:int = 50
+    GetInfo():string = "Player"
+
+enemy_stats := class:
+    Health:int = 80
+    Armor:int = 20
+    GetInfo():string = "Enemy"
+
+ProcessCombat(Player:player_stats, Enemy:enemy_stats):void =
+    using{Player}
+    Print(GetInfo())
+    Print("{Mana}")
+
+    using{Enemy}
+    Print("{Armor}")
+
+
+    Print("{Player.Health}")
+    Print("{Enemy.Health}")
+    Print(Player.GetInfo())
+    Print(Enemy.GetInfo())
+}
+<#
+-->
 <!-- 52 -->
 ```verse
 player_stats := class:
@@ -1175,6 +1359,7 @@ ProcessCombat(Player:player_stats, Enemy:enemy_stats):void =
     Print(Player.GetInfo())
     Print(Enemy.GetInfo())
 ```
+<!-- #> -->
 
 When members exist in multiple `using` contexts, you must explicitly qualify to disambiguate.
 
@@ -1182,6 +1367,20 @@ When members exist in multiple `using` contexts, you must explicitly qualify to 
 
 Local `using` works with mutable fields through the `set` keyword:
 
+<!--versetest
+m := module{
+config := class:
+    var Volume:float = 1.0
+    var Quality:int = 2
+
+UpdateSettings(Settings:config):void =
+    using{Settings}
+
+    set Volume = 0.8
+    set Quality = 3
+}
+<#
+-->
 <!-- 53 -->
 ```verse
 config := class:
@@ -1195,6 +1394,7 @@ UpdateSettings(Settings:config):void =
     set Volume = 0.8     # Inferred as: set Settings.Volume = 0.8
     set Quality = 3      # Inferred as: set Settings.Quality = 3
 ```
+<!-- #> -->
 
 ## Troubleshooting
 
@@ -1316,6 +1516,16 @@ DamageB := /GameB/Combat.CalculateDamage(10.0)  # Clear
 
 **Solution**: Use the `(local:)` qualifier to disambiguate:
 
+<!--versetest
+m := module{
+module_x := module:
+    Value:int = 10
+
+    ProcessValue((local:)Value:int):int =
+        (module_x:)Value + (local:)Value
+}
+<#
+-->
 <!-- 59 -->
 ```verse
 module_x := module:
@@ -1324,3 +1534,4 @@ module_x := module:
     ProcessValue((local:)Value:int):int =
         (module_x:)Value + (local:)Value  # Clear distinction
 ```
+<!-- #> -->
