@@ -74,18 +74,26 @@ Log("Error", ?Color:="red", ?Level:= 3)  # Returns "[Level 3] Error (red)"
 
 After the first named parameter, all subsequent parameters must also be named:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3629):
+    Invalid(? Named:int, Positional:string):void = {}
+<#
+-->
 <!-- 04 -->
 ```verse
 Invalid: named followed by positional
 Invalid(? Named:int, Positional:string):void = {}  # ERROR
 ```
+<!-- #> -->
 
 When calling functions with named parameters, you must use the
 `?Name:=Value` syntax. All parameters without default must be specified.
 Positional arguments come first:
 
-<!--NoCompile-->
+<!--versetest
+Configure(Required:int, ?Option1:string = "", ?Option2:logic = false):void = {}
+<#
+-->
 <!-- 07 -->
 ```verse
 Configure(Required:int, ?Option1:string, ?Option2:logic):void = { }
@@ -96,6 +104,7 @@ Configure(42, ?Option1:="test", ?Option2:=true)
 # Invalid: named arg before positional
 # Configure(?Option1:="test", 42, ?Option2:=true)  # ERROR
 ```
+<!-- #> -->
 
 Default values are evaluated in the function's defining scope; they
 can reference:
@@ -104,7 +113,20 @@ can reference:
   - Class or interface members
   - Earlier parameters
 
-<!--NoCompile-->
+<!--versetest
+ModuleTimeout:int = 30
+
+Connect(?Host:string = "localhost", ?Timeout:int = ModuleTimeout):void = {}
+
+game_config := class:
+    DefaultLives:int = 3
+
+    StartGame(?Lives:int = DefaultLives)<transacts>:void = {}
+
+CreateRange(?Start:int = 0, ?End:int = Start + 10):[]int =
+    array{Start, End}
+<#
+-->
 <!-- 09 -->
 ```verse
 # Module-level definition
@@ -122,10 +144,20 @@ game_config := class:
 # Access earlier parameter
 CreateRange(?Start:int, ?End:int = Start + 10):[]int =...
 ```
+<!-- #> -->
 
 Default values work with overridden members in class hierarchies:
 
-<!--NoCompile-->
+<!--versetest
+base_game := class:
+    DefaultSpeed:float = 1.0
+
+    Move(?Speed:float = DefaultSpeed)<transacts>:void = {}
+
+fast_game := class(base_game):
+    DefaultSpeed<override>:float = 2.0
+<#
+-->
 <!-- 13 -->
 ```verse
 base_game := class:
@@ -137,9 +169,10 @@ base_game := class:
 fast_game := class(base_game):
     DefaultSpeed<override>:float = 2.0
 
-base_game{}.Move()         # Uses 1.0   
+base_game{}.Move()         # Uses 1.0
 fast_game{}.Move()         # Uses 2.0 (overridden value)
 ```
+<!-- #> -->
 
 Named and default parameters interact with the type system.  A
 function with default parameters is a subtype of the same function
@@ -215,31 +248,48 @@ with the same arguments.
 matched by name, not position, so reordering doesn't create
 distinctness:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(?Y:int, ?X:int):int = X + Y
+    F(?X:int, ?Y:int):int = X - Y
+<#
+-->
 <!-- 18 -->
 ```verse
 # Not distinct - same parameters, different order
 F(?Y:int, ?X:int):int = X + Y
 F(?X:int, ?Y:int):int = X - Y  # ERROR
 ```
+<!-- #> -->
 
 **Defaults don't create distinctness:** The presence or absence of
 default values doesn't make signatures distinct if the parameter names
 are the same:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(?X:int=42):int = X
+    F(?X:int):int = X
+<#
+-->
 <!-- 19 -->
 ```verse
 # Same parameter name with/without default
 F(?X:int=42):int = X
 F(?X:int):int = X  # ERROR
 ```
+<!-- #> -->
 
 **The all-defaults rule:** If all parameters in both overloads have
 default values, the signatures are indistinct because both can be
 called with no arguments:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(?X:int=42):int = X
+    F(?Y:int=42):int = Y
+<#
+-->
 <!-- 20 -->
 ```verse
 # ERROR Both can be called as F()
@@ -250,6 +300,7 @@ called with no arguments:
 # F(?X:int=42):int = X
 # F(?X:float=3.14):float = X  # ERROR
 ```
+<!-- #> -->
 
 **Different parameter names are distinct:** Functions with different
 named parameter names can overload:
@@ -300,13 +351,19 @@ F(Arg:int, ?X:int):int = X  # OK
 **Superset of calls:** If one signature can handle all the calls that
 another can, they're indistinct:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(?Y:int=42, ?X:int=42):int = X
+    F(?X:int):int = X
+<#
+-->
 <!-- 26 -->
 ```verse
 # ERROR 3532: First can handle all calls to second
 # F(?Y:int=42, ?X:int=42):int = X
 # F(?X:int):int = X  # ERROR - can call first as F(?X := 10)
 ```
+<!-- #> -->
 
 ### Tuple as Arguments
 
@@ -651,7 +708,10 @@ Extension methods support all parameter features including named and
 default parameters:
 
 
-<!--NoCompile-->
+<!--versetest
+#(Text:string).Pad(?Left:int = 0, ?Right:int = 0):string = Text
+<#
+-->
 <!-- 47 -->
 ```verse
 #(Text:string).Pad(?Left:int = 0, ?Right:int = 0):string = ...
@@ -660,8 +720,7 @@ default parameters:
 "Hello".Pad(?Right:=5)              # "Hello     "
 "Hello".Pad(?Left:= 2, ?Right:=3)   # "  Hello   "
 ```
-
-<!-- the above should compile it is a bug. TODO: report it.-->
+<!-- #> -->
 
 ### Overloading
 
@@ -730,7 +789,11 @@ This prevents ambiguity and ensures that class methods always take precedence.
 **Scope and Visibility:** Extension methods are scoped like regular
 functions. They're only visible where they're defined or imported:
 
-<!--NoCompile-->
+<!--versetest
+utils := module:
+    (S:string).Reverse<public>():string = S
+<#
+-->
 <!-- 52 -->
 ```verse
 # In module A
@@ -743,6 +806,7 @@ using { utils }
 
 "Hello".Reverse()  # Available after importing
 ```
+<!-- #> -->
 
 **Extension Methods in Class Scope:** Extension methods can be defined
 inside classes and access class members:
@@ -1246,7 +1310,12 @@ them from top-level functions:
 - Nested functions are always private to their enclosing function.
 - You cannot define classes inside functions (nested or otherwise):
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3502):
+    F():void =
+        my_class := class {}
+<#
+-->
 <!-- 86 -->
 ```verse
 # ERROR: Cannot define classes in local scope
@@ -1259,12 +1328,19 @@ my_class := class {}
 F():void =
     Instance := my_class{}  # OK - can use class
 ```
+<!-- #> -->
 
 - Nested functions cannot reference variables or other nested
   functions defined later in the same scope (this also means mutually
   recursive nested functions are not allowed):
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3506):
+    F():void =
+        X := G()
+        G():int = 42
+<#
+-->
 <!-- 87 -->
 ```verse
 # ERROR 3506: G used before defined
@@ -1277,10 +1353,22 @@ F():void =
     G():int = 42
     X := G()     # OK: G is defined
 ```
+<!-- #> -->
 
 - The `(super:)` syntax for calling parent class methods **cannot** be used in nested functions:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3612):
+    base_class := class:
+        F(X:int):int = X
+
+    derived_class := class(base_class):
+        F<override>(X:int):int =
+            G():int =
+                (super:)F(X)
+            G()
+<#
+-->
 <!-- 88 -->
 ```verse
 # ERROR 3612: super not allowed in nested function
@@ -1300,6 +1388,7 @@ derived_class := class(base_class):
         G():int = BaseResult * 2
         G()
 ```
+<!-- #> -->
 
 ## Parametric Functions
 
@@ -1548,13 +1637,19 @@ Apply(F:type{_(:t):t}, X:t where t:type):t = F(X)
 
 **Invariant types cause errors:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3552):
+    c(t:type) := class{var X:t}
+    MakeContainer(X:t where t:type):c(t) = c(t){X := X}
+<#
+-->
 <!-- 102 -->
 ```verse
-# ERROR 3502: Cannot return type that's invariant in t
+# ERROR 3552: Cannot return type that's invariant in t
 # c(t:type) := class{var X:t}  # Mutable field makes c invariant in t
 # MakeContainer(X:t where t:type):c(t) = c(t){X := X}
 ```
+<!-- #> -->
 
 The error occurs because `c(t)` contains a mutable field of type `t`,
 making it invariant - neither covariant nor contravariant. Returning
@@ -1598,7 +1693,13 @@ types. Each overload must have a distinct parameter type signature.
 
 You cannot take a reference to an overloaded function name:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3502):
+    f(x:int):void = {}
+    f(x:float):void = {}
+    g := f
+<#
+-->
 <!-- 105 -->
 ```verse
 # ERROR 3502: Cannot capture overloaded function
@@ -1608,6 +1709,7 @@ f(x:float):void = {}
 # Error: which f?
 # g:void = f
 ```
+<!-- #> -->
 
 This restriction exists because the compiler cannot determine which overload you mean without seeing the call site with arguments.
 
@@ -1630,13 +1732,19 @@ Process[1]     # Returns option{1} (failable)
 
 **Invalid: Same types, different effects:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    f(x:int):void = {}
+    f(x:int)<transacts><decides>:void = {}
+<#
+-->
 <!-- 107 -->
 ```verse
 # ERROR 3532: Same parameter type
 f(x:int):void = {}
 f(x:int)<transacts><decides>:void = {}  # ERROR
 ```
+<!-- #> -->
 
 Effects alone don't create distinctness - you need different parameter types.
 
@@ -1718,7 +1826,11 @@ entity := class(formatter):
 
 Function-valued variables cannot be overloaded:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3502):
+    var f():void = {}
+<#
+-->
 <!-- 111 -->
 ```verse
 # ERROR 3502: Cannot have var overloaded functions
@@ -1729,18 +1841,25 @@ Function-valued variables cannot be overloaded:
 # var f():void = {}
 # f(x:int):void = {}
 ```
+<!-- #> -->
 
 **Cannot overload functions with non-functions:**
 
 A name cannot be both a function and a non-function value:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    f:int = 0
+    f():void = {}
+<#
+-->
 <!-- 112 -->
 ```verse
 # ERROR 3532: Cannot overload with variable
 # f:int = 0
 # f():void = {}
 ```
+<!-- #> -->
 
 **Cannot overload classes:**
 
@@ -1793,7 +1912,13 @@ spawn{f(1)}
 
 **Cannot call suspending overload without spawn:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3512):
+    f(x:int):void = {}
+    f(x:float)<suspends>:void = {}
+    g():void = f(1.0)
+<#
+-->
 <!-- 116 -->
 ```verse
 # ERROR 3512: suspends version needs spawn context
@@ -1802,10 +1927,17 @@ f(x:float)<suspends>:void = {}
 
 # g():void = f(1.0)  # ERROR - float version is suspends
 ```
+<!-- #> -->
 
 **Cannot spawn non-suspending overload:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3538):
+    f(x:int):void = {}
+    f(x:float)<suspends>:void = {}
+    g():void = spawn{f(1)}
+<#
+-->
 <!-- 117 -->
 ```verse
 # ERROR 3538: Cannot spawn non-suspends function
@@ -1814,6 +1946,7 @@ f(x:float)<suspends>:void = {}
 
 # g():void = spawn{f(1)}  # ERROR - int version not suspends
 ```
+<!-- #> -->
 
 ### Types 
 
@@ -1862,50 +1995,81 @@ overload functions:
 **1. Optional and Logic.** `?t` and `logic` are not distinct because
 `logic` (true or false) is internally equivalent to `?t` (value or false):
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(:?any):void = {}
+    F(:logic):void = {}
+<#
+-->
 <!-- 120 -->
 ```verse
 # ERROR: Not distinct
 F(:?any):void = {}
 F(:logic):void = {}
 ```
+<!-- #> -->
 
 **2. Arrays and Maps.**  Arrays `[]t` and maps `[k]t` are not distinct:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(:[]int):void = {}
+    F(:[string]int):void = {}
+<#
+-->
 <!-- 121 -->
 ```verse
 # ERROR: Not distinct
 F(:[]int):void = {}
 F(:[string]int):void = {}
 ```
+<!-- #> -->
 
 **3. Functions and Maps.** Function types and maps are not distinct:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(:[string]int):void = {}
+    F(G(:string)<transacts><decides>:int):void = {}
+<#
+-->
 <!-- 122 -->
 ```verse
 # ERROR: Not distinct
-F(:[strings]int):void = {}
+F(:[string]int):void = {}
 F(G(:string)<transacts><decides>:int):void = {}
 ```
+<!-- #> -->
 
 **4. Functions and Arrays.** Function types and arrays are not
 distinct because an overloaded function could match both:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(:[]int):void = {}
+    F(G(:string)<transacts><decides>:int):void = {}
+<#
+-->
 <!-- 123 -->
 ```verse
 # ERROR: Not distinct
-F(:[]range):void = {}
-F(G(:string)<transacts><decides>:int):void = {} 
+F(:[]int):void = {}
+F(G(:string)<transacts><decides>:int):void = {}
 ```
+<!-- #> -->
 
 **5. Interfaces and Classes.** An interface and any class are never
 distinct, even if the class doesn't implement the interface, because a
 subtype of the class might:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    i := interface{}
+    t := class{}
+    f(:i):void = {}
+    f(:t):void = {}
+<#
+-->
 <!-- 124 -->
 ```verse
 i := interface{}
@@ -1915,12 +2079,20 @@ t := class{}
 f(:i):void = {}
 f(:t):void = {}
 ```
+<!-- #> -->
 
 **6. Functions with Different Effects.** Functions are not distinct
 based on effects alone. Changing or removing effects doesn't create a
 distinct overload:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    a := class{}
+    b := class{}
+    F(G(:a)<transacts><decides>:b):void = {}
+    F(G(:a):b):void = {}
+<#
+-->
 <!-- 126 -->
 ```verse
 a := class{}
@@ -1930,34 +2102,56 @@ b := class{}
 F(G(:a)<transacts><decides>:b):void = {}
 F(G(:a):b):void = {}
 ```
+<!-- #> -->
 
 **7. Functions with Different Signatures.** Functions with different
 parameter or return types are not distinct because of function
 overloading:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    a := class{}
+    b := class{}
+    F(G(:b):b):void = {}
+    F(G(:a):b):void = {}
+<#
+-->
 <!-- 127 -->
 ```verse
 # ERROR: Not distinct
 F(G(:b):b):void = {}
-F(G(:a):b):void = {} 
+F(G(:a):b):void = {}
 ```
+<!-- #> -->
 
 **8. void as Top Type.** `void` is treated as equivalent to the top
 type (accepts `any`), so it's not distinct from any other type:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    F(:int):void = {}
+    F(:void):void = {}
+<#
+-->
 <!-- 128 -->
 ```verse
 # ERROR: Not distinct
 F(:int):void = {}
 F(:void):void = {}
 ```
+<!-- #> -->
 
 **9. Subtype Relationships.** Classes with subtype relationships are
 not distinct:
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    a := class{}
+    b := class(a){}
+    F(:a):void = {}
+    F(:b):void = {}
+<#
+-->
 <!-- 129 -->
 ```verse
 a := class{}
@@ -1967,25 +2161,40 @@ b := class(a){}
 F(:a):void = {}
 F(:b):void = {}
 ```
+<!-- #> -->
 
 **10. Tuple Distinctness Rules.**  Tuples have complex distinctness rules:
 
 **Empty tuples and arrays are not distinct:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    a := class{}
+    F(:tuple(), :a):void = {}
+    F(:[]a, :a):void = {}
+<#
+-->
 <!-- 130 -->
 ```verse
 a := class{}
 
 # ERROR: Not distinct
 F(:tuple(), :a):void = {}
-F(:[]a, :a):void = {} 
+F(:[]a, :a):void = {}
 ```
+<!-- #> -->
 
 **Tuples and arrays are distinct only if tuple element types are
 completely distinct:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    a := class{}
+    b := class(a){}
+    F(:tuple(a, b), :a):void = {}
+    F(:[]a, :a):void = {}
+<#
+-->
 <!-- 131 -->
 ```verse
 a := class{}
@@ -1993,20 +2202,28 @@ b := class(a){}
 
 # ERROR: Not distinct (b is subtype of a)
 F(:tuple(a, b), :a):void = {}
-F(:[]a, :a):void = {}  
+F(:[]a, :a):void = {}
 ```
+<!-- #> -->
 
 **Tuples and maps with `int` key are not distinct:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    a := class{}
+    F(:tuple(a), :a):void = {}
+    F(:[int]a, :a):void = {}
+<#
+-->
 <!-- 132 -->
 ```verse
 a := class{}
 
 # ERROR: Not distinct
 F(:tuple(a), :a):void = {}
-F(:[int]a, :a):void = {} 
+F(:[int]a, :a):void = {}
 ```
+<!-- #> -->
 
 **Tuples and maps with non-`int` key ARE distinct:**
 
@@ -2021,15 +2238,22 @@ F(:[logic]a, :a):void = {}  # OK
 
 **Singleton tuples and optional for `int` are not distinct:**
 
-<!--NoCompile-->
+<!--versetest
+assert_semantic_error(3532):
+    a := class{}
+    F(:tuple(int), :a):void = {}
+    F(:?int, :a):void = {}
+<#
+-->
 <!-- 134 -->
 ```verse
 a := class{}
 
 # ERROR: Not distinct
 F(:tuple(int), :a):void = {}
-F(:?int, :a):void = {} 
+F(:?int, :a):void = {}
 ```
+<!-- #> -->
 
 **Singleton tuples and optional for non-`int` ARE distinct:**
 
