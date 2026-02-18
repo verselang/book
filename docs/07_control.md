@@ -438,15 +438,18 @@ never returns normally. Since the bottom type is a subtype of all
 other types, `break` can be used in any type context:
 
 <!--versetest
-ShouldExit()<computes>:logic=true
+ShouldExit()<computes><decides>:void={}
 ComputeValue()<computes>:int=1
 -->
 <!-- 55 -->
 ```verse
 var X:int = 0
 loop:
-    set X = if(ShouldExit[]) then break else ComputeValue()
-    # break is compatible with int type because bottom ⊆ int
+    if (ShouldExit[]):
+        break
+    else:
+        set X = ComputeValue()
+    # break is compatible in the control flow
 ```
 
 This allows `break` to be used flexibly in expressions where a value
@@ -790,12 +793,13 @@ for expressions:
 <!-- 47 -->
 ```verse
 # This works because for produces an array, not because ranges are storable
-Numbers:[]int = for (I := 1..5){ I * 2 }
+DoubledNumbers:[]int = for (I := 1..5){ I * 2 }
 
 # Can then iterate over the array normally
-for (N : Numbers):
+for (N : DoubledNumbers):
     Print("{N}")
 ```
+
 The range exists only during the for expression evaluation; the
 resulting array is what gets stored.
 

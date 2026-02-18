@@ -595,13 +595,37 @@ class_definition := class:
 Complex expressions benefit from clear formatting that shows structure:
 
 <!--versetest
-player_type := struct{Health:int}
-Player:player_type = player_type{Health := 75}
+player_type := struct{Health:int = 75}
 BaseDamage:float = 100.0
 LevelMultiplier:float = 1.5
 BonusPercentage:float = 10.0
 rarity_type := enum{common; uncommon; rare; epic; legendary}
-Rarity:rarity_type = rarity_type.rare
+assert:
+    Player:player_type = player_type{}
+    Rarity:rarity_type = rarity_type.rare
+
+    # Multi-line conditionals
+    Result := if (Player.Health > 50):
+        "healthy"
+    else if (Player.Health > 20):
+        "injured"
+    else:
+        "critical"
+
+    # Chained operations with clear precedence
+    FinalDamage :=
+        BaseDamage *
+        LevelMultiplier *
+        (1.0 + BonusPercentage / 100.0)
+
+    # Pattern matching with aligned cases
+    DamageMultiplier := case(Rarity):
+        rarity_type.common => 1.0
+        rarity_type.uncommon => 1.5
+        rarity_type.rare => 2.0
+        rarity_type.epic => 3.0
+        rarity_type.legendary => 5.0
+<#
 -->
 <!-- 14 -->
 ```verse
@@ -627,6 +651,7 @@ DamageMultiplier := case(Rarity):
     rarity_type.epic => 3.0
     rarity_type.legendary => 5.0
 ```
+<!-- #> -->
 
 Functions follow a consistent pattern with effects and return types clearly specified:
 

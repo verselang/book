@@ -548,7 +548,7 @@ M():void =
 -->
 <!-- 33 -->
 ```verse
-Array.Find(Element:t)<decides>:int
+Array.Find(Element:t where t:subtype(comparable))<decides>:int
 ```
 <!-- #> -->
 
@@ -584,7 +584,7 @@ M():void =
 -->
 <!-- 35 -->
 ```verse
-Array.RemoveFirstElement(Element:t)<decides>:[]t
+Array.RemoveFirstElement(Element:t where t:subtype(comparable))<decides>:[]t
 ```
 <!-- #> -->
 
@@ -644,7 +644,7 @@ if (Updated := NumArray.Remove[1,1]):
 <!--NoCompile-->
 <!-- 00 -->
 ```verse
-Array.ReplaceFirstElement(OldValue:t, NewValue:t)<decides>:[]t
+Array.ReplaceFirstElement(OldValue:t, NewValue:t where t:subtype(comparable))<decides>:[]t
 ```
 
 <!--versetest-->
@@ -664,7 +664,7 @@ if (not NumArray.ReplaceFirstElement[0, 99]):
 <!--NoCompile-->
 <!-- 00 -->
 ```verse
-Array.ReplaceAllElements(OldValue:t, NewValue:t):[]t
+Array.ReplaceAllElements(OldValue:t, NewValue:t where t:subtype(comparable)):[]t
 ```
 
 <!--versetest-->
@@ -772,7 +772,7 @@ Concatenate(Arrays:[]t...):[]t
 ```
 <!-- #> -->
 
-Unlike the `+` operator which joins two arrays, `Concatenate()` accepts zero or more arrays:
+Unlike the `+` operator which joins exactly two arrays, `Concatenate()` accepts zero, two, or more arrays (but not one array):
 
 <!--versetest-->
 <!-- 45 -->
@@ -781,9 +781,10 @@ Unlike the `+` operator which joins two arrays, `Concatenate()` accepts zero or 
 Empty := Concatenate()
 Empty = array{}
 
-# Single array returns that array
-# Single := Concatenate(array{1, 2, 3})
-# Single = array{1, 2, 3}
+# Single array does not work - use the identity operation or + with empty array instead
+# Single := Concatenate(array{1, 2, 3})  # Does not compile
+Single := array{1, 2, 3}  # Just use the array directly
+Alternative := array{1, 2, 3} + array{}  # Or concatenate with empty array
 
 # Two arrays
 TwoArrays := Concatenate(array{1, 2}, array{3, 4})
@@ -816,15 +817,15 @@ Result2 = array{}
 <!-- 48 -->
 ```verse
 # Using + operator (binary)
-A1 := array{1, 2}
-A2 := array{3, 4}
-A3 := array{5, 6}
-Result1 := A1 + A2 + A3  # Works but requires multiple operations
+First := array{1, 2}
+Second := array{3, 4}
+Third := array{5, 6}
+ChainedResult := First + Second + Third  # Works but requires multiple operations
 
 # Using Concatenate (variadic)
-Result2 := Concatenate(A1, A2, A3)  # Single operation
+ConcatenatedResult := Concatenate(First, Second, Third)  # Single operation
 
-Result1 = Result2
+ChainedResult = ConcatenatedResult
 ```
 
 Arrays in Verse are thus immutable values with predictable behavior, but through `var` they offer the convenience of mutable variables. They can be concatenated, iterated, sliced, searched, and manipulated, making them one of the most flexible and fundamental data structures in the language.
@@ -928,7 +929,7 @@ RemoveKeyFromMap(TheMap:[string]int, ToRemove:string):[string]int =
     return NewMap
 ```
 
-The key type of a map must belong to the class `comparable`, which guarantees that two keys can be checked for equality. All basic scalar types such as `int`, `float`, `rational`, `logic`, `char`, and `char32` are comparable, and so are compound types like arrays, maps, tuples, and `struct`s whose components are comparable. Classes and interfaces cannot be used as keys, since their instances do not provide a built-in notion of equality.
+The key type of a map must belong to the class `comparable`, which guarantees that two keys can be checked for equality. All basic scalar types such as `int`, `float`, `rational`, `logic`, `char`, and `char32` are comparable, and so are compound types like arrays, maps, tuples, and `struct`s whose components are comparable. Regular classes and interfaces (without the `<unique>` specifier) cannot be used as keys, since their instances do not provide a built-in notion of equality. However, classes and interfaces marked with `<unique>` can be used as keys because they support identity-based equality.
 
 Not all types can be used as map keys. A type must be comparable—meaning values of that type can be checked for equality. Here's a comprehensive guide to what can and cannot be used as map keys:
 
@@ -965,14 +966,13 @@ class3 := class<unique>(class1) {}
 -->
 <!-- 57 -->
 ```verse
-Instance2 := class2{}
-Instance3 := class3{}
+    Instance2 := class2{}
+    Instance3 := class3{}
 
-# Key type is class1 (common supertype of class2 and class3)
-# Value type remains int
-MixedKeyMap : [class1]int = map{Instance2 => 1, Instance3 => 2}
+    # Key type is class1 (common supertype of class2 and class3)
+    # Value type remains int
+    MixedKeyMap : [class1]int = map{Instance2 => 1, Instance3 => 2}
 ```
-
 ### Ordering and Equality
 
 Maps preserve insertion order, which is significant for both iteration and equality checks. When you insert entries into a map, they maintain the order of insertion. Two maps are equal only if they contain the same key–value pairs **in the same order**:
@@ -1139,24 +1139,24 @@ The right-to-left precedence ensures that later maps take priority, enabling a n
 ```verse
 <#
 # Empty maps contribute nothing
-M1 := map{1 => "a"}
-M2 := map{}
-M3 := map{2 => "b"}
+FirstMap := map{1 => "a"}
+EmptyMap := map{}
+SecondMap := map{2 => "b"}
 
-Result := ConcatenateMaps(M1, M2, M3)  # map{1 => "a", 2 => "b"}
+Combined := ConcatenateMaps(FirstMap, EmptyMap, SecondMap)  # map{1 => "a", 2 => "b"}
 
 # Concatenating only empty maps produces an empty map
-Empty := ConcatenateMaps(map{}, map{}, map{})  # map{}
+AllEmpty := ConcatenateMaps(map{}, map{}, map{})  # map{}
 
 # Single map returns that map
 Single := ConcatenateMaps(map{1 => "one"})  # map{1 => "one"}
 #>
 # Test with two maps (three causes type inference issues)
-M1 := map{1 => "a"}
-M2 : [int]string = map{}
+FirstMap := map{1 => "a"}
+EmptyMap : [int]string = map{}
 
-Result := ConcatenateMaps(M1, M2)
-Result = map{1 => "a"}
+Combined := ConcatenateMaps(FirstMap, EmptyMap)
+Combined = map{1 => "a"}
 ```
 
 **Type constraints:**
@@ -1168,24 +1168,24 @@ The resulting map type will coerce to the most specific shared type from the inp
 ```verse
 <#
 # All maps have same types
-M1 := map{1 => "a"}
-M2 := map{2 => "b"}
-Combined := ConcatenateMaps(M1, M2)  # [int]string
+FirstMap := map{1 => "a"}
+SecondMap := map{2 => "b"}
+Combined := ConcatenateMaps(FirstMap, SecondMap)  # [int]string
 
 # Maps with different types
-M3 := map{1 => "a"}
-M4 := map{"string" => "b"}
-Combined2 := ConcatenateMaps(M3, M4)  # [comparable]string
+IntKeys := map{1 => "a"}
+StringKeys := map{"string" => "b"}
+MixedKeys := ConcatenateMaps(IntKeys, StringKeys)  # [comparable]string
 
 # Mismatched key and value types
-M5 := map{1 => "a"}        # [int]string
-M6 := map{5 / 3 => "b"} # [rational]string
-Combined3 := ConcatenateMaps(M5, M6) # [rational]string
+IntMap := map{1 => "a"}        # [int]string
+RationalMap := map{5 / 3 => "b"} # [rational]string
+WidenedKeys := ConcatenateMaps(IntMap, RationalMap) # [rational]string
 #>
 # Test that maps with same types can be concatenated
-M1 := map{1 => "a"}
-M2 := map{2 => "b"}
-Combined := ConcatenateMaps(M1, M2)
+FirstMap := map{1 => "a"}
+SecondMap := map{2 => "b"}
+Combined := ConcatenateMaps(FirstMap, SecondMap)
 Combined = map{1 => "a", 2 => "b"}
 ```
 

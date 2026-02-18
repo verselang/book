@@ -481,10 +481,7 @@ The `spawn` expression hides the `suspends` effect, allowing immediate
 functions to start asynchronous operations that continue
 independently:
 
-<!-- TODO DOES NOT COMPILE -->
-
 <!--versetest
-Sleep(:float):void={}
 GetNextTrack():int=0
 PlayTrack(:int)<suspends>:void={}
 -->

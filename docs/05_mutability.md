@@ -42,26 +42,6 @@ Distance(P1:point, P2:point)<reads>:float =
 
 In this pure world, equality means structural equality — two values are equal if they have the same shape and content. For primitive types and structs, this happens automatically. For classes, which have identity beyond their content, equality requires more careful consideration.
 
-<!--versetest
-linked_list := class:
-    Value:int = 0
-    Next:?linked_list = false
-
-    Equals(Other:linked_list)<computes><decides>:void =
-        Self.Value = Other.Value
-        if (Self.Next?):
-            Tmp := Self.Next?
-            OtherNext := Other.Next?
-            Tmp.Equals[OtherNext]
-        else:
-            not Other.Next?
-
-assert:
-    List1 := linked_list{Value := 1, Next := option{linked_list{Value := 2}}}
-    List2 := linked_list{Value := 1, Next := option{linked_list{Value := 2}}}
-    List1.Equals[List2])
-<#
--->
 <!-- 02 -->
 ```verse
 # Recursive data structures using classes
@@ -83,10 +63,8 @@ linked_list := class:
 List1 := linked_list{Value := 1, Next := option{linked_list{Value := 2}}}
 List2 := linked_list{Value := 1, Next := option{linked_list{Value := 2}}}
 
-if (List1.Equals[List2]):
-    Print("Structurally equal")  # This succeeds
+List1.Equals[List2] # This succeeds
 ```
-<!-- #> -->
 
 Pure computation forms the backbone of functional programming in Verse. It's predictable, testable, and parallelizable. When a function is marked `<computes>`, you know it will always produce the same output for the same input, with no hidden dependencies or surprising behaviors.
 
@@ -404,17 +382,17 @@ Mutable arrays allow element replacement:
 <!--versetest-->
 <!-- 18 -->
 ```verse
-var Numbers:[]int = array{0, 1}
-Numbers[0] = 0
-Numbers[1] = 1
+var Nums:[]int = array{0, 1}
+Nums[0] = 0
+Nums[1] = 1
 
-set Numbers[0] = 42
-Numbers[0] = 42
-Numbers[1] = 1  # Unchanged
+set Nums[0] = 42
+Nums[0] = 42
+Nums[1] = 1  # Unchanged
 
-set Numbers[1] = 666
-Numbers[0] = 42
-Numbers[1] = 666
+set Nums[1] = 666
+Nums[0] = 42
+Nums[1] = 666
 ```
 
 You cannot add elements beyond the array's current length:
@@ -610,24 +588,24 @@ M[0] = 42  # Still 42! Map has a copy of the value
 When you store structs in an array, each element is an independent copy:
 
 <!--versetest
-struct0 := struct<computes>:
-    A:int = 10
+my_struct := struct<computes>:
+    I:int = 10
 -->
 <!-- 29 -->
 ```verse
-S0 := struct0{A := 88}
-var A0:[]struct0 = array{S0, S0}
+S := my_struct{I := 88}
+var A : []my_struct = array{S, S}
 
 # All three have the value 88, but are independent
-S0.A = 88
-A0[0].A = 88
-A0[1].A = 88
+S.I = 88
+A[0].I = 88
+A[1].I = 88
 
 # Mutating one doesn't affect the others
-set A0[0].A = 99
-S0.A = 88     # Unchanged
-A0[0].A = 99  # Changed
-A0[1].A = 88  # Unchanged
+set A[0].I = 99
+S.I = 88     # Unchanged
+A[0].I = 99  # Changed
+A[1].I = 88  # Unchanged
 ```
 
 ### Arrays of Classes: Shared References
@@ -635,35 +613,35 @@ A0[1].A = 88  # Unchanged
 Arrays of classes behave very differently—all references to the same object share mutations:
 
 <!--versetest
-class0 := class:
-    var AM:int = 20
+my_class := class:
+    var I:int = 20
 -->
 <!-- 30 -->
 ```verse
-C0 := class0{}
-var A1:[]class0 = array{C0, C0, C0}
+C := my_class{}
+var A:[]my_class = array{C, C, C}
 
 # All three array elements reference the same object
-A1[0].AM = 20
-A1[1].AM = 20
-A1[2].AM = 20
+A[0].I = 20
+A[1].I = 20
+A[2].I = 20
 
 # Mutating through one affects all references
-set A1[0].AM = 30
-A1[0].AM = 30
-A1[1].AM = 30  # Changed!
-A1[2].AM = 30  # Changed!
+set A[0].I = 30
+A[0].I = 30
+A[1].I = 30  # Changed!
+A[2].I = 30  # Changed!
 
-set A1[1].AM = 40
-A1[0].AM = 40  # All three see the change
-A1[1].AM = 40
-A1[2].AM = 40
+set A[1].I = 40
+A[0].I = 40  # All three see the change
+A[1].I = 40
+A[2].I = 40
 
 # Replacing an element breaks the sharing for that element
-set A1[1] = class0{}
-A1[0].AM = 40  # Still references original
-A1[1].AM = 20  # New object with default value
-A1[2].AM = 40  # Still references original
+set A[1] = my_class{}
+A[0].I = 40  # Still references original
+A[1].I = 20  # New object with default value
+A[2].I = 40  # Still references original
 ```
 
 This is a critical distinction: **structs in collections are copies, classes in collections are shared references**.
@@ -712,9 +690,9 @@ var Data:[]int = array{1, 2, 3}
 set Data += array{4, 5}  # Array concatenation
 Data = array{1, 2, 3, 4, 5}
 
-var Numbers:[][]int = array{array{1}}
-set Numbers[0][0] *= 42
-Numbers[0][0] = 42
+var Nums:[][]int = array{array{1}}
+set Nums[0][0] *= 42
+Nums[0][0] = 42
 ```
 
 ### Tuple Mutability: Replacement Only
@@ -844,22 +822,20 @@ This restriction applies even when the class instance itself is immutable. Only 
 
 Only structs marked `<computes>` (pure structs) allow field mutation through a variable:
 
-<!--versetest
-s1:=struct<computes>{M:int=0}
--->
+<!--versetest-->
 <!-- 39 -->
 ```verse
 # OK: <computes> struct allows field mutation
-s1 := struct<computes>{M:int = 0, J:float = 3}
+my_mutable_struct := struct<computes>{M:int = 0, J:float = 3.0}
 
-var S1:s1 = s1{}
+var S:my_mutable_struct = my_mutable_struct{}
 
-Old := S1 # makes a copy of the struct
+Old := S # makes a copy of the struct
 
-set S1.M = 1 # makes a copy of the struct, but updates `M` in the process
+set S.M = 1 # makes a copy of the struct, but updates `M` in the process
 
-S1.M = 1 # Succeeds
-Old = S1 # Fails (structs does not pass as references)
+S.M = 1 # Succeeds
+not (Old = S) # Structs do not pass as references
 ```
 
 When a new struct is constructed, it is assigned the updated value and copied other fields.
