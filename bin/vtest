@@ -283,25 +283,40 @@ async function main() {
     process.exit(1);
   }
 
-  // Run tests
-  const results = [];
+  // Group files by directory
+  const filesByDir = new Map();
   for (const file of files) {
-    const result = await runTest(file);
-    results.push(result);
+    const dir = path.dirname(file);
+    if (!filesByDir.has(dir)) {
+      filesByDir.set(dir, []);
+    }
+    filesByDir.get(dir).push(file);
+  }
 
-    const basename = path.basename(file);
-    if (result.success) {
-      console.log(`✓ ${basename}`);
-    } else {
-      console.log(`✗ ${basename}`);
-      if (raw) {
-        console.log('\n--- Raw Output ---');
-        console.log(result.output);
-        console.log('--- End Output ---\n');
-      } else if (verbose && result.errors.length > 0) {
-        result.errors.forEach(err => {
-          console.log(`  Line ${err.lineNumber}: ${err.message}`);
-        });
+  // Run tests, printing directory name before each group
+  const results = [];
+  for (const [dir, dirFiles] of filesByDir) {
+    const dirName = path.basename(dir);
+    console.log(`\nTesting ${dirName}/`);
+
+    for (const file of dirFiles) {
+      const result = await runTest(file);
+      results.push(result);
+
+      const basename = path.basename(file);
+      if (result.success) {
+        console.log(`  ✓ ${basename}`);
+      } else {
+        console.log(`  ✗ ${basename}`);
+        if (raw) {
+          console.log('\n--- Raw Output ---');
+          console.log(result.output);
+          console.log('--- End Output ---\n');
+        } else if (verbose && result.errors.length > 0) {
+          result.errors.forEach(err => {
+            console.log(`    Line ${err.lineNumber}: ${err.message}`);
+          });
+        }
       }
     }
   }

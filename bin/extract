@@ -201,6 +201,54 @@ function shouldSkipSnippet(lines, verseBlockStart) {
   return false;
 }
 
+// Separate type definitions from test code
+function separateTypeDefinitions(snippetLines) {
+  const typeDefLines = [];
+  const testCodeLines = [];
+
+  let i = 0;
+  while (i < snippetLines.length) {
+    const line = snippetLines[i];
+    const trimmed = line.trim();
+
+    // Check if this line starts a type definition at base indentation
+    // Pattern: identifier := (class|struct|module|interface|enum):
+    const isTypeDef = /^[a-zA-Z_][a-zA-Z0-9_]*\s*:=\s*(class|struct|module|interface|enum)/.test(trimmed);
+
+    if (isTypeDef && line.match(/^\S/)) {
+      // This is a type definition at base indentation
+      typeDefLines.push(line);
+      i++;
+
+      // Collect all indented lines that follow (the body of the type definition)
+      while (i < snippetLines.length) {
+        const nextLine = snippetLines[i];
+        const nextTrimmed = nextLine.trim();
+
+        // If we hit an empty line or a line at base indentation that's not indented, check if type def continues
+        if (nextTrimmed === '') {
+          // Empty line - include it
+          typeDefLines.push(nextLine);
+          i++;
+        } else if (nextLine.match(/^\s/)) {
+          // Indented line - part of the type definition body
+          typeDefLines.push(nextLine);
+          i++;
+        } else {
+          // Non-indented, non-empty line - type definition has ended
+          break;
+        }
+      }
+    } else {
+      // Not a type definition, it's test code
+      testCodeLines.push(line);
+      i++;
+    }
+  }
+
+  return { typeDefLines, testCodeLines };
+}
+
 function extractVerseSnippets(markdownContent) {
   const snippets = [];
   const lines = markdownContent.split('\n');
@@ -241,31 +289,43 @@ function extractVerseSnippets(markdownContent) {
       // If no comment found, returns empty array
       const appendLines = extractAppendComment(lines, i);
 
+      // Separate type definitions from test code
+      const { typeDefLines, testCodeLines } = separateTypeDefinitions(currentSnippet);
+
       // Always use test infrastructure (all snippets are treated as tests)
       const usingStatement = 'using { /Verse.org/Tests/VerseTestScriptCmd }';
 
       // Add stub definitions
       const prelude = [
         'Sleep(:float)<transacts><suspends>:void={}',
-        'Print(Message:string):void={}'
+        'Print(Message:string)<computes>:void={}'
       ];
 
-      // Always add "assert:" before the snippet
-      const contentPrefix = ['assert:'];
-
-      // Always indent the append lines to be inside the assert block
-      const formattedAppendLines = appendLines.map(line => '    ' + line);
-
-      // Combine: using statements + prelude + prepend + assert: + snippet (indented by 4 spaces) + append
-      const fullContent = [
+      // Build the full content
+      const parts = [
         usingStatement,
         'using { /Verse.org/Concurrency }',
         ...prelude,
-        ...prependLines,
-        ...contentPrefix,
-        ...currentSnippet.map(line => '    ' + line),
-        ...formattedAppendLines
-      ].join('\n');
+        ...prependLines
+      ];
+
+      // Add type definitions at module scope (if any)
+      if (typeDefLines.length > 0) {
+        parts.push(...typeDefLines);
+      }
+
+      // Only add assert: block if there's test code or append lines
+      if (testCodeLines.length > 0 || appendLines.length > 0) {
+        parts.push('assert:');
+
+        // Add test code (indented)
+        parts.push(...testCodeLines.map(line => '    ' + line));
+
+        // Add append lines (indented)
+        parts.push(...appendLines.map(line => '    ' + line));
+      }
+
+      const fullContent = parts.join('\n');
 
       snippets.push({
         number: number,

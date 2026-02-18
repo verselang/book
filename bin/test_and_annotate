@@ -1,0 +1,182 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// Get all markdown files from docs/
+const docsDir = path.join(__dirname, '..', 'docs');
+const mdFiles = fs.readdirSync(docsDir)
+  .filter(f => f.endsWith('.md') && !f.startsWith('index'))
+  .sort();
+
+console.log(`Found ${mdFiles.length} markdown files to process\n`);
+
+for (const mdFile of mdFiles) {
+  const mdPath = path.join(docsDir, mdFile);
+  const chapterName = mdFile.replace('.md', '');
+  const targetDir = path.join(__dirname, '..', 'verse', chapterName);
+
+  console.log(`\n${'='.repeat(60)}`);
+  console.log(`Processing: ${mdFile}`);
+  console.log('='.repeat(60));
+
+  // Extract snippets
+  try {
+    execSync(`bin/extract "${mdPath}" -t verse`, {
+      cwd: path.join(__dirname, '..'),
+      stdio: 'pipe'
+    });
+  } catch (err) {
+    console.log(`Failed to extract ${mdFile}: ${err.message}`);
+    continue;
+  }
+
+  // Check if target directory exists
+  if (!fs.existsSync(targetDir)) {
+    console.log(`No snippets extracted for ${mdFile}`);
+    continue;
+  }
+
+  // Get all .versetest files
+  const testFiles = fs.readdirSync(targetDir)
+    .filter(f => f.endsWith('.versetest'))
+    .sort((a, b) => {
+      const numA = parseInt(a.replace('.versetest', ''));
+      const numB = parseInt(b.replace('.versetest', ''));
+      return numA - numB;
+    });
+
+  console.log(`Testing ${testFiles.length} snippets...`);
+
+  // Read the markdown file
+  let mdContent = fs.readFileSync(mdPath, 'utf8');
+  const lines = mdContent.split('\n');
+
+  // Test each snippet
+  for (const testFile of testFiles) {
+    const snippetNum = testFile.replace('.versetest', '');
+    const testPath = path.join(targetDir, testFile);
+
+    try {
+      execSync(`bin/vtest "${testPath}" --verbose`, {
+        cwd: path.join(__dirname, '..'),
+        stdio: 'pipe'
+      });
+      console.log(`  ✓ ${snippetNum}`);
+    } catch (err) {
+      const output = err.stdout?.toString() || err.stderr?.toString() || '';
+
+      // Extract error messages - look for lines starting with "Line" or containing "Script Error"
+      const errorLines = output.split('\n')
+        .filter(line => {
+          const trimmed = line.trim();
+          return trimmed.startsWith('Line ') && trimmed.includes('Script Error');
+        })
+        .map(line => line.trim());
+
+      if (errorLines.length === 0) {
+        console.log(`  ✗ ${snippetNum} - Unknown error`);
+        continue;
+      }
+
+      console.log(`  ✗ ${snippetNum} - ${errorLines.length} error(s)`);
+
+      // Find the snippet in the markdown file
+      const snippetMarker = `<!-- ${snippetNum} -->`;
+      const markerIndex = lines.findIndex(line => line.includes(snippetMarker));
+
+      if (markerIndex === -1) {
+        console.log(`    Warning: Could not find marker for snippet ${snippetNum}`);
+        continue;
+      }
+
+      // Find the end of the code block (```)
+      // First, find the opening ```
+      let codeStartIndex = markerIndex + 1;
+      while (codeStartIndex < lines.length && !lines[codeStartIndex].startsWith('```')) {
+        codeStartIndex++;
+      }
+
+      if (codeStartIndex >= lines.length) {
+        console.log(`    Warning: Could not find start of code block for snippet ${snippetNum}`);
+        continue;
+      }
+
+      // Now find the closing ```
+      let codeEndIndex = codeStartIndex + 1;
+      while (codeEndIndex < lines.length && !lines[codeEndIndex].startsWith('```')) {
+        codeEndIndex++;
+      }
+
+      if (codeEndIndex >= lines.length) {
+        console.log(`    Warning: Could not find end of code block for snippet ${snippetNum}`);
+        continue;
+      }
+
+      // Find where to insert the error comment (after any trailing HTML comments)
+      let insertIndex = codeEndIndex + 1;
+      let removedErrorComment = false;
+
+      // Skip past any existing HTML comments, removing ERROR comments
+      while (insertIndex < lines.length) {
+        const line = lines[insertIndex].trim();
+
+        if (line.startsWith('<!--')) {
+          // This is an HTML comment
+          if (line.includes('ERROR')) {
+            // This is an ERROR comment - remove it
+            let commentEndIndex = insertIndex;
+            if (!line.includes('-->')) {
+              // Multi-line comment, find the end
+              while (commentEndIndex < lines.length && !lines[commentEndIndex].includes('-->')) {
+                commentEndIndex++;
+              }
+            }
+            // Remove the ERROR comment
+            lines.splice(insertIndex, commentEndIndex - insertIndex + 1);
+            removedErrorComment = true;
+            // Don't increment insertIndex, check the same position again
+          } else {
+            // Regular comment, skip past it
+            if (line.includes('-->')) {
+              // Single-line comment
+              insertIndex++;
+            } else {
+              // Multi-line comment, find the end
+              insertIndex++;
+              while (insertIndex < lines.length && !lines[insertIndex].includes('-->')) {
+                insertIndex++;
+              }
+              insertIndex++; // Move past the -->
+            }
+          }
+        } else if (line === '') {
+          // Empty line, might be between comments
+          insertIndex++;
+        } else {
+          // Non-comment, non-empty line - stop here
+          break;
+        }
+      }
+
+      // Insert error comment at the determined position
+      const errorComment = [
+        '<!-- ERROR:',
+        ...errorLines.map(line => line),
+        '-->'
+      ];
+
+      lines.splice(insertIndex, 0, errorComment.join('\n'));
+      console.log(`    Added error annotation`);
+    }
+  }
+
+  // Write the updated markdown file
+  fs.writeFileSync(mdPath, lines.join('\n'), 'utf8');
+  console.log(`\nUpdated ${mdFile}`);
+}
+
+console.log('\n' + '='.repeat(60));
+console.log('Done!');
+console.log('='.repeat(60));
