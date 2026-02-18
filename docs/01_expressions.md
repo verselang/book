@@ -19,14 +19,14 @@ provides lightweight data aggregation.
 Literals are source code representations of constant values. Verse provides literals for all its primitive types: integers, floats, characters, strings, booleans, and functions. Each literal type has specific syntax rules that determine what values can be expressed and how they're interpreted.
 
 <!--versetest
-Point := struct{X:float, Y:float}
+point := struct{X:float, Y:float}
 Condition:logic = true
 -->
 <!-- 01 -->
 ```verse
 Result := if (Condition?) then 42 else 3.14  # Integer and float literals
 array{1, 2, 3}                               # Integer literals in array construction
-Point{X:=0.0, Y:=1.0}                        # Float literals in object construction
+point{X:=0.0, Y:=1.0}                        # Float literals in object construction
 ```
 
 #### Integer Literals
@@ -1402,7 +1402,7 @@ followed by elements in braces:
 <!--versetest-->
 <!-- 66 -->
 ```verse
-Numbers := array{1, 2, 3, 4, 5}
+NumArray := array{1, 2, 3, 4, 5}
 Empty := array{}
 Mixed := array{1, "two", 3.0}  # Mixed types if allowed
 ```

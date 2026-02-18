@@ -261,7 +261,12 @@ Rationals excel at resource distribution and fairness calculations:
 # Fair resource distribution
 DistributeResources(TotalGold:int, NumPlayers:int)<decides>:int =
     GoldPerPlayer := TotalGold / NumPlayers
-    Floor(GoldPerPlayer)  # Each player gets whole gold pieces or we fail
+    Floor(GoldPerPlayer)  # Converts to whole gold pieces (can be 0)
+
+# To fail when there's insufficient gold, check > 0
+DistributeResourcesOrFail(TotalGold:int, NumPlayers:int)<decides>:int =
+    GoldPerPlayer := TotalGold / NumPlayers
+    Floor(GoldPerPlayer) > 0  # Fails if each player gets 0
 
 # Item affordability calculation
 Coins:int = 225
@@ -1134,11 +1139,11 @@ All Verse types can be type values:
 PrimitiveType:type = int
 
 # User-defined types
-MyClass := class {}
-ClassType:type = MyClass
+my_class := class {}
+ClassType:type = my_class
 
-MyStruct := struct {Value:int}
-StructType:type = MyStruct
+my_struct := struct {Value:int}
+StructType:type = my_struct
 
 # Collection types
 ArrayType:type = []int
@@ -1154,7 +1159,7 @@ generic_class(t:type) := class {Data:t}
 ParametricType:type = generic_class(int)
 
 # Metatypes
-SubtypeValue:type = subtype(MyClass)
+SubtypeValue:type = subtype(my_class)
 
 # Type literals
 TypeLiteralValue:type = type{_(:int):string}
@@ -1389,24 +1394,25 @@ has no more precise type to assign.
 One way `any` appears is when combining values that do not share a
 more specific supertype. For example:
 
-<!--versetest-->
-<!-- 86 -->
-```verse
-Letters := enum:
+<!--versetest
+letters := enum:
     A
     B
     C
 
 letter := class:
     Value : char
-    Main(Arg : int) : void =
-        X := if (Arg > 0) then:
-            Letters.A
-        else:
-            letter{Value := 'D'}
+-->
+<!-- 86 -->
+```verse
+Main(Arg : int) : void =
+    X := if (Arg > 0) then:
+        letters.A
+    else:
+        letter{Value := 'D'}
 ```
 
-In this example, `X` is assigned either a value of type `Letters` or
+In this example, `X` is assigned either a value of type `letters` or
 of type `letter`. Since these two types are unrelated, the compiler
 assigns `X` the type `any`, which is their lowest common supertype.
 

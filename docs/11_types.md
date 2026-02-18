@@ -1697,59 +1697,59 @@ ProtectedAlias<protected> := float  # only in classes and interfaces
 
 <!-- 94 -->
 ```verse
-PrivateClass := class{}      # No specifier = internal scope
+private_class := class{}      # No specifier = internal scope
 
 # INVALID: Public alias to internal type (ERROR 3593)
-# PublicToPrivate<public> := PrivateClass
+# PublicToPrivate<public> := private_class
 
 # VALID: Same or less visibility
-InternalToInternal<internal> := PrivateClass
-InternalAlias := PrivateClass  # Defaults to internal
+InternalToInternal<internal> := private_class
+InternalAlias := private_class  # Defaults to internal
 ```
 
 This restriction applies to all type constructs:
 
 <!--versetest
-PrivateType := class{}
+private_type := class{}
 
 assert_semantic_error(3593):
-    Pub1<public> := ?PrivateType
+    Pub1<public> := ?private_type
 
 assert_semantic_error(3593):
-    Pub2<public> := []PrivateType
+    Pub2<public> := []private_type
 
 assert_semantic_error(3593):
-    Pub3<public> := [int]PrivateType
+    Pub3<public> := [int]private_type
 
 assert_semantic_error(3593):
-    Pub4<public> := [PrivateType]int
+    Pub4<public> := [private_type]int
 
 assert_semantic_error(3593):
-    Pub5<public> := tuple(int, PrivateType)
+    Pub5<public> := tuple(int, private_type)
 
 assert_semantic_error(3593):
-    Pub6<public> := PrivateType -> int
+    Pub6<public> := private_type -> int
 
 assert_semantic_error(3593):
-    Pub7<public> := int -> PrivateType
+    Pub7<public> := int -> private_type
 
 assert_semantic_error(3593):
-    Pub8<public> := type{_():PrivateType}
+    Pub8<public> := type{_():private_type}
 <#
 -->
 <!-- 95 -->
 ```verse
-PrivateType := class{}
+private_type := class{}
 
 # All INVALID - trying to make internal type public (ERROR 3593)
-# Pub1<public> := ?PrivateType           # Optional
-# Pub2<public> := []PrivateType          # Array
-# Pub3<public> := [int]PrivateType       # Map value
-# Pub4<public> := [PrivateType]int       # Map key
-# Pub5<public> := tuple(int, PrivateType)  # Tuple
-# Pub6<public> := PrivateType -> int     # Function parameter
-# Pub7<public> := int -> PrivateType     # Function return
-# Pub8<public> := type{_():PrivateType}  # Function type
+# Pub1<public> := ?private_type           # Optional
+# Pub2<public> := []private_type          # Array
+# Pub3<public> := [int]private_type       # Map value
+# Pub4<public> := [private_type]int       # Map key
+# Pub5<public> := tuple(int, private_type)  # Tuple
+# Pub6<public> := private_type -> int     # Function parameter
+# Pub7<public> := int -> private_type     # Function return
+# Pub8<public> := type{_():private_type}  # Function type
 ```
 <!-- #> -->
 
@@ -1886,11 +1886,11 @@ Both `subtype(T)` and `castable_subtype(T)` are subtypes of `type`, meaning they
 
 <!-- 105 -->
 ```verse
-C := class:
-    f(c:subtype(C)):type = return(c)  # Valid: subtype(C) <: type
+c := class:
+    f(C:subtype(c)):type = return(C)  # Valid: subtype(c) <: type
 
-T := interface {}
-g(x:subtype(T)):type = x  # Valid: subtype(T) <: type
+t := interface {}
+g(x:subtype(t)):type = x  # Valid: subtype(t) <: type
 ```
 
 **Restrictions:**

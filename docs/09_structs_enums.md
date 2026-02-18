@@ -244,7 +244,7 @@ Enums have specific syntactic requirements that keep their usage clear and unamb
 **Enums must be direct right-hand side of definitions:**
 
 <!--versetest
-Priority := enum:
+priority := enum:
     Low
     Medium
     High
@@ -253,21 +253,21 @@ Priority := enum:
 <!-- 09 -->
 ```verse
 # Valid
-Priority := enum:
+priority := enum:
     Low
     Medium
     High
 
 # Invalid - cannot use enum in expressions
 Result := -enum{A, B}      # Compile error
-Value := enum{X, Y} + 1    # Compile error
+value := enum{X, Y} + 1    # Compile error
 ```
 <!-- #> -->
 
 **Enums must be module or class-level definitions:**
 
 <!--versetest
-MyEnum := enum:
+my_enum := enum:
     Value1
     Value2
 
@@ -277,7 +277,7 @@ ProcessData():void = {}
 <!-- 10 -->
 ```verse
 # Valid
-MyEnum := enum:
+my_enum := enum:
     Value1
     Value2
 

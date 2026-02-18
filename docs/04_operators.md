@@ -135,12 +135,12 @@ HandlePlayerDeath():void={}
 EnableAdminMode():void={}
 ShowMenu():void={}
 UnlockAchievement():void={}
-GameState := enum{Playing, Paused}
+game_state := enum{Playing, Paused}
 Score:int = 1500
 HighScore:int = 1000
 Health:float = 0.0
 PlayerName:string = "Admin"
-CurrentState:GameState = GameState.Paused
+CurrentState:game_state = game_state.Paused
 Level:int = 15
 -->
 <!-- 03 -->
@@ -156,7 +156,7 @@ if (Health <= 0.0):
 if (PlayerName = "Admin"):
     EnableAdminMode()
 
-if (CurrentState <> GameState.Playing):
+if (CurrentState <> game_state.Playing):
     ShowMenu()
 
 # Comparison in complex expressions
@@ -218,6 +218,7 @@ The `not` operator negates the success or failure of an expression:
 
 <!--versetest
 ContinuePlaying()<computes>:void={}
+IsGameOver:?int = option{1}
 -->
 <!-- 06 -->
 ```verse
@@ -240,11 +241,11 @@ EnterRoom()<computes>:void={}
 AllowQuestAccess()<computes>:void={}
 HasKey:?int = option{1}
 DoorUnlocked:?int = option{1}
-player := class{Level:int = 10, HasItem:logic = true}
-Player:player = player{}
+player := struct{Level:int, HasItem:?int}
 -->
 <!-- 07 -->
 ```verse
+Player:player = player{Level:=10, HasItem:=option{1}}
 if (HasKey? and DoorUnlocked?):
     EnterRoom()
 

@@ -1792,36 +1792,36 @@ Effects alone don't create distinctness - you need different parameter types.
 Subclasses can add new overloads to methods:
 
 <!--versetest
-C0 := class:
+c0 := class:
     f(X:int):int = X
 
-C1 := class(C0):
+c1 := class(c0):
     f(X:float):float = X
 <#
 -->
 <!-- 108 -->
 ```verse
-C0 := class:
+c0 := class:
     f(X:int):int = X
 
-C1 := class(C0):
+c1 := class(c0):
     # Add new overload for float
     f(X:float):float = X
 ```
 <!-- #> -->
 
 <!--versetest
-C0 := class:
+c0 := class:
     f(X:int):int = X
 
-C1 := class(C0):
+c1 := class(c0):
     f(X:float):float = X
 -->
 <!-- 208 -->
 ```verse
-C0{}.f(5)     # OK - int overload
-C1{}.f(5)     # OK - inherited int overload
-C1{}.f(5.0)   # OK - new float overload
+c0{}.f(5)     # OK - int overload
+c1{}.f(5)     # OK - inherited int overload
+c1{}.f(5.0)   # OK - new float overload
 ```
 
 When a subclass defines a method that shares a name
@@ -1831,34 +1831,34 @@ with a parent method, it must either:
 2. **Override exactly one** parent overload using `<override>`
 
 <!--versetest
-C := class<allocates>{}
-D := class<allocates>(C){}
+c := class<allocates>{}
+d := class<allocates>(c){}
 
-E := class<allocates>:
-    f(c:C):C = c
-    f(e:E):E = e
+e := class<allocates>:
+    f(C:c):c = C
+    f(E:e):e = E
 
-F := class<allocates>(E):
-    f<override>(c:C):D = D{}
+f := class<allocates>(e):
+    f<override>(C:c):d = d{}
 <#
 -->
 <!-- 109 -->
 ```verse
-C := class{}
-D := class(C){}
+c := class{}
+d := class(c){}
 
 # Parent class with overloads
-E := class:
-    f(c:C):C = c
-    f(e:E):E = e
+e := class:
+    f(C:c):c = C
+    f(E:e):e = E
 
 # Valid: Overrides one parent overload
-F := class(E):
-    f<override>(c:C):D = D{}
+f := class(e):
+    f<override>(C:c):d = d{}
 
-# ERROR: D is subtype of C, overlaps but doesn't override
-# G := class(E):
-#     f(d:D):D = d  # ERROR - ambiguous with f(c:C)
+# ERROR: d is subtype of c, overlaps but doesn't override
+# g := class(e):
+#     f(D:d):d = D  # ERROR - ambiguous with f(C:c)
 ```
 <!-- #> -->
 

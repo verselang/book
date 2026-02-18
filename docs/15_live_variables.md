@@ -664,7 +664,7 @@ reactive routing.
 Use `upon` for one-time initialization when resources become available:
 
 <!--verse
-ResourceManager := class:
+resource_manager := class:
     var TextureLoaded:logic = false
     var ModelLoaded:logic = false
 
@@ -674,7 +674,7 @@ ResourceManager := class:
   Line 8: Verse compiler error V3502: Type definitions are not yet implemented outside of a module scope.
 -->
 ```verse
-ResourceManager := class:
+resource_manager := class:
     var TextureLoaded:logic = false
     var ModelLoaded:logic = false
 

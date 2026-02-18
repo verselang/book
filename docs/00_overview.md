@@ -596,7 +596,7 @@ Complex expressions benefit from clear formatting that shows structure:
 
 <!--versetest
 player_type := struct{Health:int}
-GetPlayer()<transacts>:player_type = player_type{Health := 75}
+Player:player_type = player_type{Health := 75}
 BaseDamage:float = 100.0
 LevelMultiplier:float = 1.5
 BonusPercentage:float = 10.0

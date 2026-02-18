@@ -42,7 +42,7 @@ B:?int = false
 -->
 <!-- 04 -->
 ```verse
-X := B? + 1            # Fails because B is false and has no element
+# X := B? + 1       # Fails because B is false and has no element
 ```
 
 This shows how Verse integrates optionals tightly with the effect system: the presence or absence of a value can cause an entire computation to succeed or fail.
@@ -328,7 +328,7 @@ When a function has a single array parameter, you can call it with multiple argu
 <!--versetest-->
 <!-- 21 -->
 ```verse
-ProcessNumbers(Numbers:[]int):int = Numbers.Length
+ProcessNumbers(Nums:[]int):int = Nums.Length
 
 # All these are equivalent:
 ProcessNumbers(1, 2, 3)           # Multiple args → array
@@ -497,19 +497,19 @@ The two-parameter form `Array.Slice[Start, End]` returns elements from index `St
 <!--versetest-->
 <!-- 29 -->
 ```verse
-Numbers : []int = array{10, 20, 30, 40, 50}
-if (Slice := Numbers.Slice[1, 4]):
+NumArray : []int = array{10, 20, 30, 40, 50}
+if (Slice := NumArray.Slice[1, 4]):
     Slice = array{20, 30, 40}
 ```
 
 The one-parameter form `Array.Slice[Start]` returns all elements from `Start` to the end:
 
 <!--versetest
-Numbers : []int = array{10, 20, 30, 40, 50}
+NumArray : []int = array{10, 20, 30, 40, 50}
 -->
 <!-- 30 -->
 ```verse
-if (Slice := Numbers.Slice[2]):
+if (Slice := NumArray.Slice[2]):
     Slice = array{30, 40, 50}
 ```
 

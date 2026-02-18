@@ -32,9 +32,8 @@ function parseArgs() {
 }
 
 function extractPrependComment(lines, verseBlockStart) {
-  // Look backwards from verseBlockStart to find <!--verse, <!--versetest, or <!-- comment
+  // Look backwards from verseBlockStart to find <!--versetest or <!-- comment
   let commentLines = [];
-  let isTest = false;
   let i = verseBlockStart - 1;
 
   // Skip empty lines
@@ -54,33 +53,22 @@ function extractPrependComment(lines, verseBlockStart) {
   if (i >= 0) {
     const trimmed = lines[i].trim();
 
-    // Check for single-line markers like <!--versetest--> or <!--verse-->
+    // Check for single-line marker <!--versetest-->
     if (trimmed === '<!--versetest-->') {
-      isTest = true;
-      return { commentLines, isTest };
-    } else if (trimmed === '<!--verse-->') {
-      return { commentLines, isTest };
+      return commentLines;
     }
 
     // Check if we found a closing --> (multi-line comment)
     if (trimmed === '-->') {
       i--;
-      // Collect lines until we find <!--versetest, <!--verse, or <!--
+      // Collect lines until we find <!--versetest or <!--
       while (i >= 0) {
         const line = lines[i];
         const trimmed = line.trim();
 
         if (trimmed.startsWith('<!--versetest')) {
           // Found <!--versetest, extract content after it
-          isTest = true;
           const firstLine = line.substring(line.indexOf('<!--versetest') + 13).trim();
-          if (firstLine) {
-            commentLines.unshift(firstLine);
-          }
-          break;
-        } else if (trimmed.startsWith('<!--verse')) {
-          // Found <!--verse, extract content after it
-          const firstLine = line.substring(line.indexOf('<!--verse') + 9).trim();
           if (firstLine) {
             commentLines.unshift(firstLine);
           }
@@ -95,11 +83,11 @@ function extractPrependComment(lines, verseBlockStart) {
     }
   }
 
-  return { commentLines, isTest };
+  return commentLines;
 }
 
 function extractAppendComment(lines, verseBlockEnd) {
-  // Look forward from verseBlockEnd to find <!--versetest, <!--verse, or <!-- comment
+  // Look forward from verseBlockEnd to find <!--versetest or <!-- comment
   let commentLines = [];
   let i = verseBlockEnd + 1;
 
@@ -108,7 +96,7 @@ function extractAppendComment(lines, verseBlockEnd) {
     i++;
   }
 
-  // Check if we found an opening <!--versetest, <!--verse, or <!--
+  // Check if we found an opening <!--versetest or <!--
   if (i < lines.length) {
     const trimmed = lines[i].trim();
 
@@ -129,23 +117,6 @@ function extractAppendComment(lines, verseBlockEnd) {
     if (trimmed.startsWith('<!--versetest')) {
       // Extract content after <!--versetest on the same line
       const firstLine = lines[i].substring(lines[i].indexOf('<!--versetest') + 13).trim();
-      if (firstLine && firstLine !== '') {
-        commentLines.push(firstLine);
-      }
-      i++;
-
-      // Collect lines until we find -->
-      while (i < lines.length) {
-        const line = lines[i];
-        if (line.trim() === '-->') {
-          break;
-        }
-        commentLines.push(line);
-        i++;
-      }
-    } else if (trimmed.startsWith('<!--verse')) {
-      // Extract content after <!--verse on the same line
-      const firstLine = lines[i].substring(lines[i].indexOf('<!--verse') + 9).trim();
       if (firstLine && firstLine !== '') {
         commentLines.push(firstLine);
       }
@@ -263,35 +234,29 @@ function extractVerseSnippets(markdownContent) {
       const number = snippetNumber;
 
       // Look for prepend comment before the ```verse block
-      const { commentLines: prependLines, isTest } = extractPrependComment(lines, verseBlockStart);
+      // If no <!--versetest marker found, returns empty array (treats as empty versetest)
+      const prependLines = extractPrependComment(lines, verseBlockStart);
 
       // Look for append comment after the closing ```
+      // If no comment found, returns empty array
       const appendLines = extractAppendComment(lines, i);
 
-      // Choose using statement based on whether it's a test or not
-      const usingStatement = isTest
-        ? 'using { /Verse.org/Tests/VerseTestScriptCmd }'
-        : 'using { /Verse.org/VerseCLR }';
+      // Always use test infrastructure (all snippets are treated as tests)
+      const usingStatement = 'using { /Verse.org/Tests/VerseTestScriptCmd }';
 
       // Add stub definitions
       const prelude = [
-        'Sleep(:float)<transacts><suspends>:void={}'
+        'Sleep(:float)<transacts><suspends>:void={}',
+        'Print(Message:string):void={}'
       ];
 
-      // Add Print function definition for test files only
-      if (isTest) {
-        prelude.push('Print(Message:string):void={}');
-      }
+      // Always add "assert:" before the snippet
+      const contentPrefix = ['assert:'];
 
-      // For tests, add "assert:" before the snippet
-      const contentPrefix = isTest ? ['assert:'] : [];
+      // Always indent the append lines to be inside the assert block
+      const formattedAppendLines = appendLines.map(line => '    ' + line);
 
-      // For tests, indent the append lines to be inside the assert block
-      const formattedAppendLines = isTest
-        ? appendLines.map(line => '    ' + line)
-        : appendLines;
-
-      // Combine: using statements + prelude + prepend + [assert:] + snippet (indented by 4 spaces) + append
+      // Combine: using statements + prelude + prepend + assert: + snippet (indented by 4 spaces) + append
       const fullContent = [
         usingStatement,
         'using { /Verse.org/Concurrency }',
@@ -304,8 +269,7 @@ function extractVerseSnippets(markdownContent) {
 
       snippets.push({
         number: number,
-        content: fullContent,
-        isTest: isTest
+        content: fullContent
       });
     } else if (inVerseBlock) {
       currentSnippet.push(line);
@@ -351,7 +315,7 @@ function main() {
   // Write snippets to files
   snippets.forEach(snippet => {
     // Use the snippet number directly (already padded from the comment)
-    const extension = snippet.isTest ? '.versetest' : '.verse';
+    const extension = '.versetest';
     const filename = path.join(outputDir, `${snippet.number}${extension}`);
     fs.writeFileSync(filename, snippet.content + '\n\n');
     console.log(`Created: ${filename}`);
