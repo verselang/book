@@ -866,7 +866,28 @@ must initialize the subclass fields first, then call the parent
 constructor using the qualified `<constructor>` syntax within the
 archetype:
 
-<!--versetest-->
+<!--versetest
+entity := class:
+    Name:string
+    var Health:int
+
+character := class(entity):
+    Class:string
+    Level:int
+
+MakeEntity<constructor>(Name:string, Health:int) := entity:
+    Name := Name
+    Health := Health
+
+# Subclass constructor delegates to parent constructor
+MakeCharacter<constructor>(Name:string, Class:string, Level:int) := character:
+    # Initialize subclass fields first
+    Class := Class
+    Level := Level
+    # Then delegate to parent constructor
+    MakeEntity<constructor>(Name, Level * 100)
+<#
+-->
 <!-- 29-->
 ```verse
 entity := class:
@@ -891,10 +912,26 @@ MakeCharacter<constructor>(Name:string, Class:string, Level:int) := character:
 
 # Hero := MakeCharacter("Aldric", "Warrior", 5)
 ```
+<!-- #>-->
 
 Constructor functions can also forward to other constructors of the same class:
 
-<!--versetest-->
+<!--versetest
+player := class:
+    Name:string
+    var Score:int
+
+# Primary constructor
+MakePlayer<constructor>(Name:string, Score:int) := player:
+    Name := Name
+    Score := Score
+
+# Convenience constructor forwards to primary
+MakeNewPlayer<constructor>(Name:string) := player:
+    # Delegate to another constructor of the same class
+    MakePlayer<constructor>(Name, 0)
+<#
+-->
 <!-- 30-->
 ```verse
 player := class:
@@ -911,6 +948,7 @@ MakeNewPlayer<constructor>(Name:string) := player:
     # Delegate to another constructor of the same class
     MakePlayer<constructor>(Name, 0)
 ```
+<!-- #>-->
 
 Here's an example of calling the constructor:
 
@@ -953,7 +991,25 @@ Understanding execution order is crucial for correct initialization:
 
 For delegating constructors to parent classes:
 
-<!--versetest-->
+<!--versetest
+base := class:
+    BaseValue:int
+
+derived := class(base):
+    DerivedValue:int
+
+MakeBase<constructor>(Value:int) := base:
+    block:
+        Print("Base constructor")
+    BaseValue := Value
+
+MakeDerived<constructor>(Base:int, Derived:int) := derived:
+    # This executes first
+    DerivedValue := Derived
+    # Then parent constructor executes
+    MakeBase<constructor>(Base)
+<#
+-->
 <!-- 31-->
 ```verse
 base := class:
@@ -973,6 +1029,7 @@ MakeDerived<constructor>(Base:int, Derived:int) := derived:
     # Then parent constructor executes
     MakeBase<constructor>(Base)
 ```
+<!-- #>-->
 
 Here's an example showing execution order:
 
@@ -1390,13 +1447,19 @@ type, you write one parametric class that accepts a type parameter.
 
 A parametric class takes one or more type parameters in its definition:
 
-<!-- NoCompile-->
+<!--versetest
+# Simple container that holds a single value
+container(t:type) := class:
+    Value:t
+<#
+-->
 <!-- 46-->
 ```verse
 # Simple container that holds a single value
 container(t:type) := class:
     Value:t
 ```
+<!-- #>-->
 
 Here are examples of instantiating this parametric class with different types:
 
@@ -1474,7 +1537,18 @@ When you instantiate a parametric class with specific type arguments,
 Verse creates a concrete type. Critically, **multiple instantiations
 with the same type arguments produce the same type**:
 
-<!-- NoCompile-->
+<!--versetest
+container(t:type) := class:
+    Value:t
+
+# These are the same type
+Type1 := container(int)
+Type2 := container(int)
+Type3 := container(int)
+
+# All three are equal - they're the same type
+<#
+-->
 <!-- 49-->
 ```verse
 container(t:type) := class:
@@ -1487,6 +1561,7 @@ Type3 := container(int)
 
 # All three are equal - they're the same type
 ```
+<!-- #>-->
 
 This type identity is guaranteed across the program:
 
@@ -1519,12 +1594,17 @@ This matters for:
 While the same type arguments always produce the same type, different
 type arguments produce distinct, incompatible types:
 
-<!-- NoCompile-->
+<!--versetest
+container(t:type) := class:
+    Value:t
+<#
+-->
 <!-- 52-->
 ```verse
 container(t:type) := class:
     Value:t
 ```
+<!-- #>-->
 
 
 Here's an example showing that different instantiations create distinct types:
@@ -1692,7 +1772,18 @@ positions**, the parametric class is **invariant** in that
 parameter. No subtyping relationship exists between different
 instantiations:
 
-<!-- NoCompile-->
+<!--versetest
+entity := class:
+    ID:int
+
+player := class(entity):
+    Name:string
+
+# Invariant class - type parameter in both positions
+transformer(t:type) := class:
+    Transform(Input:t):t = Input  # Both parameter and return
+<#
+-->
 <!-- 55-->
 ```verse
 entity := class:
@@ -1705,6 +1796,7 @@ player := class(entity):
 transformer(t:type) := class:
     Transform(Input:t):t = Input  # Both parameter and return
 ```
+<!-- #>-->
 
 Here's an example showing that no variance exists between different instantiations:
 
@@ -1743,7 +1835,18 @@ When a type parameter is not used in any method signatures (only in
 private implementation details or not at all), the parametric class is
 **bivariant**. Any instantiation can be converted to any other:
 
-<!-- NoCompile-->
+<!--versetest
+entity := class:
+    ID:int
+
+player := class(entity):
+    Name:string
+
+# Bivariant class - type parameter not used in public interface
+container(t:type) := class:
+    DoSomething():void = {}  # Doesn't use t at all
+<#
+-->
 <!-- 56-->
 ```verse
 entity := class:
@@ -1756,6 +1859,7 @@ player := class(entity):
 container(t:type) := class:
     DoSomething():void = {}  # Doesn't use t at all
 ```
+<!-- #>-->
 
 
 Here's an example showing that bivariant classes allow conversion in both directions:
@@ -1795,7 +1899,24 @@ recursion can occur.
 The most common form of recursive parametric type is when a class
 references itself with **the same type parameter**:
 
-<!-- NoCompile-->
+<!--versetest
+# Linked list node
+list_node(t:type) := class:
+    Value:t
+    Next:?list_node(t)  # Same type parameter 't'
+
+# Helper to create lists
+Cons(Head:t, Tail:?list_node(t) where t:type):list_node(t) =
+    list_node(t){Value := Head, Next := Tail}
+
+# Sum a linked list
+SumList(List:?list_node(int)):int =
+    if (Head := List?):
+        Head.Value + SumList(Head.Next)
+    else:
+        0
+<#
+-->
 <!-- 69-->
 ```verse
 # Linked list node
@@ -1814,6 +1935,7 @@ SumList(List:?list_node(int)):int =
     else:
         0
 ```
+<!-- #>-->
 
 Here's an example of using the linked list:
 
@@ -1994,8 +2116,8 @@ equivalence(t:type, u:type) := interface:
 
 # Generic collection interface
 collection_ifc(t:type) := interface:
-    Add(Item:t)<transacts>:void
-    Remove(Item:t)<transacts><decides>:void
+    AddItem(Item:t)<transacts>:void
+    RemoveItem(Item:t)<transacts><decides>:void
     Has(Item:t)<reads>:logic
 <#
 -->
@@ -2430,7 +2552,11 @@ sorted_unique(t:type where t:subtype(comparable)) := class<unique>:
 
 **Constraint propagation:**
 
-<!-- versetest-->
+<!--versetest
+wrapper(t:subtype(comparable)) := class:
+    Data:t
+<#
+-->
 <!-- 98-->
 ```verse
 # Constraints propagate through function calls
@@ -2441,11 +2567,19 @@ Process(W:wrapper(t) where t:subtype(comparable))<computes><decides>:void =
     # Compiler knows t is comparable here
     W.Data = W.Data
 ```
+<!-- #>-->
 
 When defining parametric functions that work with parametric types,
 the constraints must be compatible:
 
-<!-- versetest-->
+<!--versetest
+base_class := class:
+    ID:int
+
+constrained(t:subtype(base_class)) := class:
+    Data:t
+<#
+-->
 <!-- 99-->
 ```verse
 base_class := class:
@@ -2462,6 +2596,7 @@ UseConstrained(C:constrained(t) where t:subtype(base_class)):int =
 # UseConstrained(C:constrained(t) where t:type):int =  # ERROR 3509
 #     C.Data.ID
 ```
+<!-- #>-->
 
 ### Access Specifiers
 
@@ -2767,7 +2902,14 @@ if (ItemC := C.MaybeItem?, ItemD := D.MaybeItem?):
 The same principle applies when parametric classes contain unique
 instances in their fields:
 
-<!--versetest-->
+<!--versetest
+entity := class<unique>{}
+
+registry(t:type) := class:
+    DefaultEntity:entity = entity{}
+    Data:t
+<#
+-->
 <!-- 108-->
 ```verse
 entity := class<unique>{}
@@ -2776,8 +2918,9 @@ registry(t:type) := class:
     DefaultEntity:entity = entity{}
     Data:t
 ```
+<!-- #>-->
 
-<!-- versetest
+<!--versetest
 entity := class<unique>{}
 
 registry(t:type) := class:
@@ -2806,7 +2949,23 @@ the same identity.
 Types marked with `<unique>` are subtypes of the built-in `comparable`
 type. This can create overload ambiguity:
 
-<!-- versetest-->
+<!--versetest
+# Valid: non-unique interface doesn't conflict with comparable
+regular_interface := interface:
+    Method():void
+
+Process(A:comparable, B:comparable):void = {}
+Process(A:regular_interface, B:regular_interface):void = {}  # OK - no conflict
+
+# Invalid: unique interface conflicts with comparable
+assert_semantic_error(3532):
+    my_unique_interface := interface<unique>:
+        Method():void
+
+    Handle(A:comparable, B:comparable):void = {}
+    Handle(A:my_unique_interface, B:my_unique_interface):void = {}  # ERROR - ambiguous!
+<#
+-->
 <!-- 109-->
 ```verse
 # Valid: non-unique interface doesn't conflict with comparable
@@ -2823,6 +2982,7 @@ unique_interface := interface<unique>:
 Handle(A:comparable, B:comparable):void = {}
 # Handle(A:unique_interface, B:unique_interface):void = {}  # ERROR - ambiguous!
 ```
+<!-- #>-->
 
 Since `unique_interface` is a subtype of `comparable`, both overloads
 could match when called with `unique_interface` arguments, causing a
@@ -3120,7 +3280,15 @@ valid_castable := class<castable>:
 However, a non-parametric class can be `<castable>` even if it
 inherits from or contains parametric types:
 
-<!-- versetest-->
+<!--versetest
+container(t:type) := class:
+    Value:t
+
+# Valid: concrete instantiation of parametric type
+int_container := class<castable>(container(int)):
+    Extra:string
+<#
+-->
 <!-- 121-->
 ```verse
 container(t:type) := class:
@@ -3130,6 +3298,7 @@ container(t:type) := class:
 int_container := class<castable>(container(int)):
     Extra:string
 ```
+<!-- #>-->
 
 #### Using castable_subtype
 
@@ -3178,8 +3347,19 @@ cannot be extended. This is particularly important for persistable
 classes, which require `<final>` to ensure their structure remains
 stable for serialization:
 
-<!-- versetest
+<!--versetest
 player_stats:=struct<persistable>{}
+
+player_profile := class<final><persistable>:
+    Username:string = "Player"
+    Level:int = 1
+    Gold:int = 0
+
+player_data := class<final><persistable>:
+    Version:int = 1
+    LastLogin:string = ""
+    Statistics:player_stats = player_stats{}
+<#
 -->
 <!-- 123-->
 ```verse
@@ -3193,6 +3373,7 @@ player_stats:=struct<persistable>{}
       LastLogin:string = ""
       Statistics:player_stats = player_stats{}
 ```
+<!-- #>-->
 
 The `<final>` requirement for persistable classes prevents schema
 evolution problems. If subclasses could extend persistable classes,
@@ -3202,7 +3383,15 @@ persist and how to handle polymorphic deserialization.
 For methods, `<final>` locks behavior at a specific point in the
 inheritance chain:
 
-<!-- versetest-->
+<!--versetest
+base_entity := class:
+    GetName():string = "Entity"
+
+game_object := class(base_entity):
+    GetName<override><final>():string = "GameObject"
+    # Any subclass of game_object cannot override GetName
+<#
+-->
 <!-- 124-->
 ```verse
   base_entity := class:
@@ -3212,6 +3401,7 @@ inheritance chain:
       GetName<override><final>():string = "GameObject"
       # Any subclass of game_object cannot override GetName
 ```
+<!-- #>-->
 
 For fields, `<final>` prevents modification through archetype
 construction. When a field is marked `<final>` and has a default value,
@@ -3328,8 +3518,17 @@ their data loads; when they leave or data changes, it saves. The
 system handles all serialization, network transfer, and storage
 management transparently.
 
-<!-- versetest
+<!--versetest
 player:=string
+
+player_inventory := class<final><persistable>:
+    Gold:int = 0
+    Items:[]string = array{}
+    UnlockedAreas:[]string = array{}
+
+# This variable automatically persists across sessions
+SavedInventories : weak_map(player, player_inventory) = map{}
+<#
 -->
 <!-- 127-->
 ```verse
@@ -3342,6 +3541,7 @@ player:=string
 
   SavedInventories : weak_map(player, player_inventory) = map{}
 ```
+<!-- #>-->
 
 The `<persistable>` specifier enforces strict structural requirements
 to guarantee data integrity across versions. Classes must be `<final>`

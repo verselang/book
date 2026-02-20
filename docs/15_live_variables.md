@@ -400,8 +400,14 @@ point and resumes exactly when the condition becomes true.
 <!--versetest
 int_ref := class:
     var Contents:int = 0
-X:int_ref=int_ref{}
-Y:int_ref=int_ref{}
+
+TestAwait()<transacts><suspends>:void =
+    X:int_ref=int_ref{}
+    Y:int_ref=int_ref{}
+    # Wait for a specific condition
+    await{X.Contents > 10}
+    set Y.Contents = X.Contents * 2
+<#
 -->
 <!-- 11 -->
 ```verse
@@ -409,6 +415,7 @@ Y:int_ref=int_ref{}
 await{X.Contents > 10}
 set Y.Contents = X.Contents * 2
 ```
+<!-- #>-->
 
 The guard expression must have effects `<reads><computes><decides>`
 (see [Effects](13_effects.md))—it can read and compute but cannot

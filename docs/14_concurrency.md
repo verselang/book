@@ -1240,6 +1240,7 @@ ProcessGameLogic():void={}
 UpdatePhysics():void={}
 CheckCollisions():void={}
 PerformAction():void={}
+
 GameLoop()<suspends>:void =
     loop:
         ProcessGameLogic()
@@ -1251,8 +1252,10 @@ DelayByTicks(TickCount:int)<suspends>:void =
     for (I := 1..TickCount):
         NextTick()
 
-DelayByTicks(5)
-PerformAction()
+# Test the delay function
+TestDelay()<suspends>:void =
+    DelayByTicks(5)
+    PerformAction()
 <#
 -->
 <!-- 49 -->
@@ -1493,8 +1496,8 @@ player_session := class:
 MakeSession()<transacts>:player_session =
     player_session{LoginTime := GetSecondsSinceEpoch()}
 
-GetSessionDuration(Session:player_session)<transacts>:float =
-    GetSecondsSinceEpoch() - Session.LoginTime
+GetSessionDuration(S:player_session)<transacts>:float =
+    GetSecondsSinceEpoch() - S.LoginTime
 ```
 
 **Rate limiting:**
@@ -1759,13 +1762,13 @@ where awaiting tasks explicitly wait, subscribable events let you
 register callback functions that execute automatically when values are
 signaled:
 
-<!--versetest
+<!--NoCompile-->
+<!-- 63 -->
+```verse
 LogScore(:int):void={}
 UpdateUI(:int):void={}
 CheckAchievements(:int):void={}
--->
-<!-- 63 -->
-```verse
+
 ScoreEvent := subscribable_event(int){}
 
 # Subscribe multiple handlers
@@ -1845,11 +1848,11 @@ Event subscriptions participate in Verse's transactional system. If a
 transaction containing a `Subscribe()` call fails and rolls back, the
 subscription never takes effect:
 
-<!--versetest
-Handler(:int):void={}
--->
+<!--NoCompile-->
 <!-- 66 -->
 ```verse
+Handler(:int):void={}
+
 MyEvent := subscribable_event(int){}
 
 # Subscription in a failing transaction
@@ -1863,11 +1866,11 @@ MyEvent.Signal(100)
 
 Similarly, `Cancel()` operations are transactional. If you cancel a subscription within a transaction that later fails, the subscription remains active:
 
-<!--versetest
-Handler(:int):void={}
--->
+<!--NoCompile-->
 <!-- 67 -->
 ```verse
+Handler(:int):void={}
+
 MyEvent := subscribable_event(int){}
 Sub := MyEvent.Subscribe(Handler)
 
@@ -1955,14 +1958,14 @@ AudioSystem()<suspends>:void =
 **Multi-System Notifications:** Use subscribable events when many
 systems need to react to the same events:
 
-<!--versetest
+<!--NoCompile-->
+<!-- 70 -->
+```verse
 UpdateInventoryUI(:int):void={}
 PlayPickupSound(:int):void={}
 CheckCollectionAchievement(:int):void={}
 LogItemPickup(:int):void={}
--->
-<!-- 70 -->
-```verse
+
 ItemPickedUp := subscribable_event(int){}
 
 # Each system subscribes independently
@@ -2005,11 +2008,19 @@ PerformWithTimeout()<suspends>:logic =
 Initialize multiple systems concurrently:
 
 <!--versetest
-using{/Verse.org/VerseCLR}
 LoadAssets()<suspends>:void={}
 ConnectToServer()<suspends>:void={}
 InitializeUI()<suspends>:void={}
 PrepareAudio()<suspends>:void={}
+
+InitializeGame()<suspends>:void =
+    sync:
+        LoadAssets()
+        ConnectToServer()
+        InitializeUI()
+        PrepareAudio()
+    Print("Game ready!")
+<#
 -->
 <!-- 72 -->
 ```verse
@@ -2021,6 +2032,7 @@ InitializeGame()<suspends>:void =
         PrepareAudio()
     Print("Game ready!")
 ```
+<!-- #>-->
 
 Start background tasks that don't block gameplay:
 

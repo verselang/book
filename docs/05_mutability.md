@@ -102,7 +102,7 @@ var X:int = 0
 
 The type inference syntax `:=` cannot be used with `var`. You must explicitly declare the type.
 
-**Must provide initial value:**
+**Must provide initial value (in local scope):**
 
 <!--versetest-->
 <!-- 05 -->
@@ -110,11 +110,11 @@ The type inference syntax `:=` cannot be used with `var`. You must explicitly de
 # Valid - initialized
 var Health:float = 100.0
 
-# Invalid - no initial value
+# Invalid - no initial value in local scope
 # var Score:int  # Error
 ```
 
-Every `var` declaration requires an initial value. Uninitialized mutable variables are not allowed.
+In local scopes (functions, control flow blocks), every `var` declaration requires an initial value. However, when declaring mutable fields in classes or interfaces, the initial value can be omitted and provided during instantiation (see the Classes and Interfaces chapter for details).
 
 **Cannot be completely untyped:**
 
@@ -152,12 +152,12 @@ assert_semantic_error(3509):
 -->
 <!-- 08 -->
 ```verse
-# Invalid
-# set (var Z:int = 0) = 1  # Error
+# Invalid - var declarations evaluate to values, not variables
+# set (var Z:int = 0) = 1  # Error: cannot use set on a value
 ```
 <!-- #> -->
 
-The `var` keyword declares a new mutable variable; you cannot assign to the declaration itself.
+Since `var` declarations return their initial value as an expression result, you cannot use `set` on them - `set` requires a mutable variable, not a value.
 
 ### set with Block Expressions
 
@@ -178,39 +178,69 @@ X = 2 and Y = 0
 
 This pattern is useful when the new value requires intermediate computations or when you need multiple side effects during assignment.
 
-### Scope and Redeclaration Restrictions
-
-**Cannot redeclare in same scope:**
-
-Variables cannot be redeclared with `:=` once they exist in scope:
+**Important:** The left-hand side of `set` is evaluated before the block executes, and the block's return value is what gets assigned. This can lead to confusing behavior in certain cases:
 
 <!--versetest-->
 <!-- 10 -->
 ```verse
+# Confusing: Setting the same variable inside the block
+var X:int = 0
+set X = block:
+    set X = 5  # X temporarily becomes 5
+    2          # But X will be set to 2 (the block result)
+X = 2          # The inner set was overwritten!
+
+# Confusing: Modifying index variables used in array access
+var Xs:[]int = array{10, 20, 30}
+var Index:int = 1
+set Xs[Index] = block:
+    set Index = 2  # Index changes, but doesn't affect which element is set
+    99
+Xs[1] = 99         # Element at original Index (1) was modified, not Xs[2]
+Index = 2          # Index is now 2, but too late to affect the assignment
+```
+
+To avoid confusion, it's best to avoid modifying the target variable or any variables used in the target expression inside the block.
+
+### Scope and Redeclaration Restrictions
+
+**No Variable Shadowing:**
+
+Verse does not allow variable shadowing. Once an identifier is declared, you cannot redeclare it with `:=` anywhere in the same scope or any nested scope. This is more restrictive than many languages that allow inner scopes to shadow outer scope variables.
+
+<!--versetest-->
+<!-- 11 -->
+```verse
 var X:int = 0
 
-# Invalid - X already exists
+# Invalid - X already exists in current scope
 # X := 1  # Error
 ```
 
-This applies even in conditional branches:
+Unlike many languages, you cannot shadow variables even in nested blocks:
 
 <!--versetest
 SomeCondition:logic=false
 -->
-<!-- 11 -->
+<!-- 12 -->
 ```verse
 var A:int = 1
 
 if (SomeCondition?):
     # Invalid - A already declared in outer scope
-    # A := 2  # Error
+    # A := 2  # Error: cannot shadow A
+
+block:
+    # Also invalid - cannot shadow here either
+    # var A:int = 2  # Error: ambiguous identifier
 ```
+
+If you need multiple identifiers with similar purposes, use descriptive names (e.g., `InitialHealth`, `CurrentHealth`) or use qualified names to create separate scopes (see the [Modules and Paths](16_modules.md) chapter for details on qualified names and disambiguation).
 
 **Cannot redeclare with assignment syntax:**
 
 <!--versetest-->
-<!-- 12 -->
+<!-- 13 -->
 ```verse
 var A:int = 1
 var B:int = 2
@@ -228,7 +258,7 @@ assert_semantic_error(3549):
     var (var X):int = 0
 <#
 -->
-<!-- 13 -->
+<!-- 14 -->
 ```verse
 # Invalid
 # var (var X):int = 0  # ERROR 3549
@@ -263,7 +293,7 @@ assert:
     Stats2.Inventory = array{"Sword"}
 <#
 -->
-<!-- 14 -->
+<!-- 15 -->
 ```verse
 player_stats := struct<computes>:
     Level:int = 1
@@ -292,7 +322,7 @@ player_stats := struct<computes>:
     Inventory:[]string = array{}
 
 -->
-<!-- 15 -->
+<!-- 16 -->
 ```verse
 var Original:player_stats = player_stats{Level := 5}
 var Copy:player_stats = Original
@@ -324,7 +354,7 @@ assert:
     Player2.Health = 75.0
 <#
 -->
-<!-- 16 -->
+<!-- 17 -->
 ```verse
 game_character := class:
     Name:string = "Hero"
@@ -359,7 +389,7 @@ assert:
     Box.MutableData = 42
 <#
 -->
-<!-- 17 -->
+<!-- 18 -->
 ```verse
 container := class:
     ImmutableData:point= point{}  # Always immutable
@@ -381,7 +411,7 @@ Arrays and maps follow struct semantics—they are values, not references. When 
 Mutable arrays allow element replacement:
 
 <!--versetest-->
-<!-- 18 -->
+<!-- 19 -->
 ```verse
 var Nums:[]int = array{0, 1}
 Nums[0] = 0
@@ -399,7 +429,7 @@ Nums[1] = 666
 You cannot add elements beyond the array's current length:
 
 <!--versetest-->
-<!-- 19 -->
+<!-- 20 -->
 ```verse
 var A:[]int = array{0}
 not (set A[1] = 1)  # Fails - index out of bounds
@@ -411,7 +441,7 @@ not (set A[1] = 1)  # Fails - index out of bounds
 Mutable maps allow both updating existing keys and adding new keys:
 
 <!--versetest-->
-<!-- 20 -->
+<!-- 21 -->
 ```verse
 var Scores:[int]int = map{0 => 1, 1 => 2}
 set Scores[1] = 42
@@ -429,12 +459,36 @@ set Config["brightness"] = 75
 Looking up a non-existent key doesn't add it:
 
 <!--versetest-->
-<!-- 21 -->
+<!-- 22 -->
 ```verse
 M:[int]int := map{}
 not (M[0] = 0)  # Key doesn't exist, comparison fails
 # M is still empty - lookup didn't add the key
 ```
+
+**Deleting keys from maps:**
+
+Verse does not have a direct "delete" or "remove" operation for maps. To remove keys, create a new map that excludes the unwanted keys by iterating over the original map:
+
+<!--versetest-->
+<!-- 23 -->
+```verse
+var Scores:[string]int = map{"Alice" => 100, "Bob" => 85, "Charlie" => 92}
+
+# Remove "Bob" by creating a new map without that key
+var NewScores:[string]int = map{}
+for (Name->Score:Scores):
+    if (Name <> "Bob"):
+        set NewScores[Name] = Score
+
+set Scores = NewScores
+
+# Scores now only contains Alice and Charlie
+Scores["Alice"] = 100
+Scores["Charlie"] = 92
+```
+
+This pattern can be wrapped in a helper function for reusability. See the [Control Flow](07_control.md) chapter for more details on `for` loops.
 
 #### Nested Collection Mutation
 
@@ -443,7 +497,7 @@ Collections can be nested, and `set` works through multiple levels:
 **Map of arrays:**
 
 <!--versetest-->
-<!-- 22 -->
+<!-- 24 -->
 ```verse
 var Data:[int][]int = map{}
 set Data[666] = array{42}
@@ -458,7 +512,7 @@ Data[666] = array{1234}
 **Array of maps:**
 
 <!--versetest-->
-<!-- 23 -->
+<!-- 25 -->
 ```verse
 var Grid:[][int]int = array{map{}}
 
@@ -481,7 +535,7 @@ Grid[0][42] = 1122
 **Array of arrays:**
 
 <!--versetest-->
-<!-- 24 -->
+<!-- 26 -->
 ```verse
 var Matrix:[][]int = array{array{1234}}
 set Matrix[0][0] = 42
@@ -495,22 +549,18 @@ Matrix[0] = array{666}
 Matrix[0][0] = 666
 ```
 
-**Important**: All nested levels should exist to use `set`, if any of the higher levels don't exist, the entire set will fail
+All nested levels should exist to use `set`, if any of the higher levels don't exist, the entire set will fail.
 
 <!--versetest-->
-<!-- 24b -->
+<!-- 27 -->
 ```verse
 var Grid:[string][]int = map{"apples"=>array{1,2,3,4}}
 
-set Grid["bananas"] = array{} # ok - no nesting
-set Grid["apples"][2] = 7 # ok - changes nested array "3" to "7"
+set Grid["bananas"] = array{}  # OK - no nesting, just adds new key
+set Grid["apples"][2] = 7      # OK - changes nested array element "3" to "7"
 
-set Grid["oranges"][0] = 10 # fail: "oranges" key not found in map
-
-# Alternative (make sure that higher levels exist first):
-if (not Grid["oranges"]):
-    set Grid["oranges"] = array{}
-set Grid["oranges"][0] = 10 # succeeds
+# This would fail: set Grid["oranges"][0] = 10
+# Error: "oranges" key doesn't exist, so Grid["oranges"] fails
 ```
 
 #### Value Semantics for Collections
@@ -518,7 +568,7 @@ set Grid["oranges"][0] = 10 # succeeds
 Extracting a value from a mutable collection creates an independent copy:
 
 <!--versetest-->
-<!-- 25 -->
+<!-- 28 -->
 ```verse
 var X:[][int]int = array{map{42 => 1122, 1234 => 4321}}
 
@@ -547,7 +597,7 @@ When collections contain classes or structs with mutable fields, you can mutate 
 the_class := class:
     var X:[]int = array{0}
 -->
-<!-- 26 -->
+<!-- 29 -->
 ```verse
 C := the_class{}
 set C.X[0] = 4266642
@@ -560,7 +610,7 @@ C.X[0] = 4266642
 class0 := class:
     var AM:int = 20
 -->
-<!-- 27 -->
+<!-- 30 -->
 ```verse
 var M:[int]class0 = map{0 => class0{}}
 M[0].AM = 20
@@ -573,7 +623,7 @@ M[0].AM = 30
 The map constructed from a `var` doesn't track changes to the source variable:
 
 <!--versetest-->
-<!-- 28 -->
+<!-- 31 -->
 ```verse
 var I0:int = 42
 M:[int]int = map{0 => I0}
@@ -592,7 +642,7 @@ When you store structs in an array, each element is an independent copy:
 my_struct := struct<computes>:
     I:int = 10
 -->
-<!-- 29 -->
+<!-- 32 -->
 ```verse
 S := my_struct{I := 88}
 var A : []my_struct = array{S, S}
@@ -617,7 +667,7 @@ Arrays of classes behave very differently—all references to the same object sh
 my_class := class:
     var I:int = 20
 -->
-<!-- 30 -->
+<!-- 33 -->
 ```verse
 C := my_class{}
 var A:[]my_class = array{C, C, C}
@@ -655,7 +705,7 @@ Verse supports compound assignment operators that combine arithmetic with mutati
 struct0 := struct<computes>:
     A:int = 10
 -->
-<!-- 31 -->
+<!-- 34 -->
 ```verse
 var S0:struct0 = struct0{}
 
@@ -681,7 +731,7 @@ Available compound operators:
 Compound assignments work anywhere regular assignment does:
 
 <!--versetest-->
-<!-- 32 -->
+<!-- 35 -->
 ```verse
 var Score:int = 100
 set Score += 50
@@ -701,7 +751,7 @@ Nums[0][0] = 42
 Tuples can be replaced entirely but individual elements cannot be mutated:
 
 <!--versetest-->
-<!-- 33 -->
+<!-- 36 -->
 ```verse
 var T0:tuple(int, int) = (10, 20)
 T0(0) = 10
@@ -717,11 +767,12 @@ T0(1) = 40
 
 <!--versetest
 assert_semantic_error(3509):
+    TestTupleMutation()<transacts>:void =
         var T0:tuple(int, int) = (50, 60)
         set T0(0) = 70
 <#
 -->
-<!-- 34 -->
+<!-- 37 -->
 ```verse
 var T0:tuple(int, int) = (50, 60)
 set T0(0) = 70  # ERROR: Cannot mutate tuple elements
@@ -737,7 +788,7 @@ Maps preserve **insertion order**, and this order is maintained through mutation
 #### New Keys Append to End
 
 <!--versetest-->
-<!-- 35 -->
+<!-- 38 -->
 ```verse
 var M:[int]int = map{2 => 2}
 
@@ -757,7 +808,7 @@ M = map{2 => 2, 1 => 1, 0 => 0}
 #### Updating Existing Keys Preserves Position
 
 <!--versetest-->
-<!-- 36 -->
+<!-- 39 -->
 ```verse
 var M:[string]int = map{"a" => 3, "b" => 1, "c" => 2}
 
@@ -776,7 +827,7 @@ M = map{"a" => 2, "b" => 1, "c" => 0}  # Still same order
 Map equality considers both keys/values **and order**:
 
 <!--versetest-->
-<!-- 37 -->
+<!-- 40 -->
 ```verse
 var M:[string]int = map{"a" => 3, "b" => 1, "c" => 2}
 set M["a"] = 0
@@ -806,7 +857,7 @@ assert_semantic_error(3509):
         set CX.AI = 30
 <#
 -->
-<!-- 38 -->
+<!-- 41 -->
 ```verse
 classX := class:
     AI:int = 20  # Immutable field
@@ -817,14 +868,14 @@ set CX.AI = 30  # Error: Cannot mutate immutable class field
 ```
 <!-- #> -->
 
-This restriction applies even when the class instance itself is immutable. Only `var` fields of classes can be mutated.
+This restriction applies even when the class instance itself is mutable. Only `var` fields of classes can be mutated.
 
 ### Only <computes> Structs Allow Field Mutation
 
 Only structs marked `<computes>` (pure structs) allow field mutation through a variable:
 
 <!--versetest-->
-<!-- 39 -->
+<!-- 42 -->
 ```verse
 # OK: <computes> struct allows field mutation
 my_mutable_struct := struct<computes>{M:int = 0, J:float = 3.0}
@@ -844,9 +895,9 @@ If there is other places referencing the old struct, they will not have the upda
 
 This restriction ensures that only predictable, effect-free structs can be mutated.
 
-### Cannot Have Immutable Class in Mutation Path
+### Cannot Mutate Through Immutable Class Fields
 
-When mutating nested structures, you cannot have an immutable class in the "middle" of the path:
+When mutating nested structures, you cannot mutate through an immutable field of a class (a field not declared with `var`):
 
 <!--versetest
 assert_semantic_error(3509):
@@ -861,35 +912,35 @@ assert_semantic_error(3509):
         set S.C.Field.Value = 10
 <#
 -->
-<!-- 41 -->
+<!-- 43 -->
 ```verse
 struct0 := struct<computes>{A:int = 10}
 struct1 := struct<computes>{S0:struct0 = struct0{}}
-class0 := class{CI:struct1 = struct1{}}  # Immutable class
+class0 := class{CI:struct1 = struct1{}}  # Class with immutable field CI
 struct2 := struct<computes>{C0:class0 = class0{}}
 struct3 := struct<computes>{S2:struct2 = struct2{}}
 
 var S3:[]struct3 = array{struct3{}, struct3{}}
-set S3[1].S2.C0.CI.S0.A = 7  # ERROR: class0 is immutable
+set S3[1].S2.C0.CI.S0.A = 7  # ERROR: Cannot mutate through immutable field CI
 ```
 <!-- #> -->
 
-**But** you CAN mutate through `var` members of that class.
+The error occurs because `CI` is an immutable field (not declared with `var`). **However**, you CAN mutate through `var` fields of a class in the mutation path.
 
 Even with a mutable index, you cannot mutate an immutable array:
 
 <!--NoCompile-->
-<!-- 43 -->
+<!-- 44 -->
 ```verse
-I:int = 2
-A:[]int = array{5, 6, 7}
-set A[I] = 2  # ERROR: A is not var
+var I:int = 2  # Mutable index
+A:[]int = array{5, 6, 7}  # Immutable array
+set A[I] = 2  # ERROR: A is not var - mutability of I doesn't matter
 ```
 
 The array itself must be declared `var` to allow element mutation:
 
 <!--versetest-->
-<!-- 44 -->
+<!-- 45 -->
 ```verse
 I:int = 2
 var A:[]int = array{5, 6, 7}
@@ -911,7 +962,7 @@ assert:
     not (Item1 = Item3)
 <#
 -->
-<!-- 47 -->
+<!-- 46 -->
 ```verse
 unique_item := class<unique>:
     var Count:int = 0

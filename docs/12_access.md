@@ -1001,7 +1001,15 @@ Localize(ConfigMessage(?TimeLimit := 600, ?MaxPlayers := 32))  # Override both
 
 Messages can accept tuple parameters, which are destructured in the parameter list:
 
-<!--versetest-->
+<!--versetest
+LocationMessage<localizes>(Player:string, (X:int, Y:int)) : message =
+    "{Player} is at position ({X}, {Y})"
+
+# Test the call
+TestTupleParam():void =
+    Localize(LocationMessage("Hero", (10, 20)))
+<#
+-->
 <!-- 27 -->
 ```verse
 LocationMessage<localizes>(Player:string, (X:int, Y:int)) : message =
@@ -1011,6 +1019,7 @@ LocationMessage<localizes>(Player:string, (X:int, Y:int)) : message =
 Localize(LocationMessage("Hero", (10, 20)))
 # Outputs: "Hero is at position (10, 20)"
 ```
+<!-- #>-->
 
 #### String Escaping and Unicode
 
