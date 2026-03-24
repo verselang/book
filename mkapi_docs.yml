@@ -1,11 +1,12 @@
-site_name: Book of Verse
-site_url: https://verselang.github.io/book/
-site_description: Documentation for the Verse programming language
+site_name: Verse API Reference
+site_url: https://verselang.github.io/book/api
+docs_dir: api_docs
+site_description: API for the Verse programming language
 site_author: Jan Vitek
 
 repo_name: verselang/book
 repo_url: https://github.com/verselang/book
-edit_uri: edit/main/docs/
+edit_uri: edit/main/api_docs/
 
 theme:
   name: material
@@ -66,26 +67,7 @@ extra_javascript:
   - type: module
     path: js/Verse.js
 
+
 nav:
   - Home: index.md
   - Overview: 00_overview.md
-  - Expressions: 01_expressions.md
-  - Primitives types: 02_primitives.md
-  - Containers types: 03_containers.md
-  - Operators: 04_operators.md
-  - Mutability: 05_mutability.md
-  - Functions: 06_functions.md
-  - Control Flow: 07_control.md
-  - Failure: 08_failure.md
-  - Structs & Enums: 09_structs_enums.md
-  - Classes & Interfaces: 10_classes_interfaces.md
-  - Type System: 11_types.md
-  - Access Specifiers: 12_access.md
-  - Effects: 13_effects.md
-  - Concurrency: 14_concurrency.md
-  - Live Variables: 15_live_variables.md
-  - Modules and Paths: 16_modules.md
-  - Persistable Types: 17_persistable.md
-  - Code Evolution: 18_evolution.md
-  - "📚 Concept Index": concept_index.md
-

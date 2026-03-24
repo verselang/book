@@ -22,8 +22,10 @@ jobs:
           fetch-depth: 0
           sparse-checkout: |
             docs
+            api_docs
             verse_lexer
             mkdocs.yml
+            mkapi_docs.yml
             requirements.txt
 
       - name: Setup Python
@@ -37,7 +39,11 @@ jobs:
           pip install -e .
 
       - name: Build MkDocs site
-        run: mkdocs build
+        run: |
+          cp -r docs/{Assets,images,js,extra.css,VerseSyntaxValidation.md} api_docs/ # copy stuff from docs to api_docs
+
+          mkdocs build -f mkdocs.yml -d ./site
+          mkdocs build -f mkapi_docs.yml -d ./site/api
 
       - name: Upload artifact
         if: ${{ inputs.upload }}
