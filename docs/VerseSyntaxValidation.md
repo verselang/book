@@ -1,3 +1,7 @@
+---
+search:
+  exclude: true
+---
 Use this to test and validate syntax highlighting
 
 #### Basics
