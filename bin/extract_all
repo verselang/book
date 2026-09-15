@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 function main() {
   const currentDir = process.cwd();
@@ -40,11 +40,12 @@ function main() {
     // on windows the child process must explicitly call node because we
     // cannot rely on the hashbang
     const onWindows = process.platform === "win32"
-    const execCommand = onWindows
-          ? `node.exe "${extractScript}" "${file}" -t "${verseDir}"`
-          : `"${extractScript}" "${file}" -t "${verseDir}"`;
+    const execCmd = onWindows ? 'node.exe' : extractScript;
+    const execArgs = onWindows
+          ? [extractScript, file, '-t', verseDir]
+          : [file, '-t', verseDir];
     try {
-      execSync(execCommand, {
+      execFileSync(execCmd, execArgs, {
         stdio: 'inherit',
         encoding: 'utf-8'
       });
