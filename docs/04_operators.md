@@ -200,6 +200,113 @@ On the Verse VM, bitwise operations support arbitrarily large integers
 (bignums beyond 2^64). On the Blueprint VM, values must fit within the
 64-bit signed integer range (-2^63 to 2^63-1).
 
+### Bit Shift Operations
+
+Verse provides bit shifts for integers through two functions:
+`BitShiftLeft` and `BitShiftRight`. Each takes a value and a shift
+count, and operates on the two's complement binary representation of
+the value. Unlike the bitwise operations, the shifts are failable: they
+fail when the shift count is negative, so they are called with square
+brackets.
+
+<!--versetest-->
+<!-- 06 -->
+```verse
+# Shift left - moves bits toward the high end, filling with zeros
+BitShiftLeft[1, 10] = 1024      # 1 << 10 = 10000000000
+BitShiftLeft[3, 5] = 96         # 11 << 5 = 1100000
+BitShiftLeft[1, 0] = 1          # a count of 0 leaves the value unchanged
+
+# Shift right - moves bits toward the low end, dropping the bits shifted out
+BitShiftRight[1024, 10] = 1
+BitShiftRight[96, 5] = 3        # 1100000 >> 5 = 11
+BitShiftRight[1, 1] = 0         # the only set bit is shifted out
+```
+
+Shifting left by `N` multiplies by 2^N, and shifting right by `N`
+divides by 2^N, rounding down:
+
+<!--versetest-->
+<!-- 07 -->
+```verse
+BitShiftLeft[12345, 8] = 12345 * 256
+BitShiftRight[12345, 3] = 1543  # 12345 / 8 = 1543.125, rounded down
+```
+
+Both shifts are arithmetic: they preserve the sign of the value. A
+negative value shifted left is still `X * 2^N`. A negative value
+shifted right rounds toward negative infinity, not toward zero:
+
+<!--versetest-->
+<!-- 08 -->
+```verse
+BitShiftLeft[-5, 2] = -20       # -5 * 4
+BitShiftRight[-96, 5] = -3      # -96 / 32 = -3 exactly
+BitShiftRight[-97, 5] = -4      # -97 / 32 = -3.03..., rounded down to -4
+BitShiftRight[-1, 1] = -1       # -1 has all bits set, so it stays -1
+
+# Shifting right undoes shifting left
+BitShiftRight[BitShiftLeft[-12345, 8], 8] = -12345
+```
+
+Shifting right by a count at least as wide as the value shifts out
+every bit, leaving only the sign: `0` for non-negative values and `-1`
+for negative ones. The count can be arbitrarily large:
+
+<!--versetest-->
+<!-- 09 -->
+```verse
+BitShiftRight[12345, 1000] = 0
+BitShiftRight[-12345, 1000] = -1
+BitShiftLeft[0, 1000000000] = 0 # zero stays zero, however far it shifts
+```
+
+A negative shift count fails, for both shifts. The value itself may be
+negative; only the count must be non-negative. Like any failable
+expression, a shift can supply a fallback with `or`:
+
+<!--versetest-->
+<!-- 10 -->
+```verse
+not BitShiftLeft[5, -2]         # fails: negative count
+not BitShiftRight[5, -2]        # fails: negative count
+BitShiftRight[-5, 2] = -2       # succeeds: a negative value is fine
+
+(BitShiftLeft[5, -2] or 7) = 7  # falls back to 7
+```
+
+Bit shifts work only with the `int` type, not `float` or `rational`.
+
+Shifts combine naturally with the bitwise operations for building masks
+and packing several small fields into one integer:
+
+<!--versetest-->
+<!-- 11 -->
+```verse
+# Build a mask for bit N
+Bit3 := BitShiftLeft[1, 3]      # 8 = binary 1000
+Flags := 10                     # 10 = binary 1010
+BitAnd(Flags, Bit3) = 8         # bit 3 is set
+
+# Pack two 4-bit fields into one value
+Packed := BitOr(BitShiftLeft[5, 4], 10)
+Packed = 90                     # 0101 1010
+
+# Unpack them again
+BitAnd(BitShiftRight[Packed, 4], 15) = 5    # high field
+BitAnd(Packed, 15) = 10                     # low field
+```
+
+Integers in Verse are arbitrary precision, so shifting left grows the
+result beyond 64 bits rather than wrapping around:
+
+<!--versetest-->
+<!-- 12 -->
+```verse
+BitShiftLeft[1, 64] = (9223372036854775807 + 1) * 2  # 2^64
+BitShiftRight[BitShiftLeft[1, 200], 200] = 1
+```
+
 ## Comparison Operators
 
 Comparison operators test relationships between values and are failable expressions that succeed or fail based on the comparison result.
@@ -231,7 +338,7 @@ Health:float = 0.0
 CurrentState:game_state = game_state.Paused
 Level:int = 15
 -->
-<!-- 06 -->
+<!-- 13 -->
 ```verse
 # Numeric comparisons
 if (Score > HighScore):
@@ -262,7 +369,7 @@ The following types support equality comparison operations (`=` and `<>`):
 Comparisons between different types still compile, but they always fail:
 
 <!--versetest-->
-<!-- 07 -->
+<!-- 14 -->
 ```verse
 not (0 = 0.0)   # int is never equal to float
 not ("5" = 5)   # string is never equal to int
@@ -279,7 +386,7 @@ The query operator checks if a `logic` value is `true` (see [Failure](08_failure
 <!--versetest
 StartGame():void={}
 -->
-<!-- 08 -->
+<!-- 15 -->
 ```verse
 IsReady:logic = true
 
@@ -297,7 +404,7 @@ The `not` operator negates the success or failure of an expression:
 <!--versetest
 ContinuePlaying()<computes>:void={}
 -->
-<!-- 09 -->
+<!-- 16 -->
 ```verse
 IsGameOver:logic = false
 
@@ -322,7 +429,7 @@ DoorUnlocked:?int = option{1}
 QuickCheck()<computes><decides>:void = {}
 ExpensiveCheck()<computes><decides>:void = {}
 -->
-<!-- 10 -->
+<!-- 17 -->
 ```verse
 if (HasKey? and DoorUnlocked?):
     EnterRoom()
@@ -344,7 +451,7 @@ HasMasterKey:?int = option{1}
 QuickCheck()<computes><decides>:void = {}
 ExpensiveCheck()<computes><decides>:void = {}
 -->
-<!-- 11 -->
+<!-- 18 -->
 ```verse
 if (HasKeyCard? or HasMasterKey?):
     OpenDoor()
@@ -370,7 +477,7 @@ Consider two expressions `P` and `Q` which may either succeed or fail, the follo
 When initializing constants and variables, both `=` and `:=` can be used if an explicit type is provided. For type inference (no type annotation), you must use `:=`.
 
 <!--versetest-->
-<!-- 12 -->
+<!-- 19 -->
 ```verse
 # Constant initialization with explicit types - both = and := work
 MaxHealth:int = 100
@@ -391,7 +498,7 @@ The `set =` operator updates variable values:
 <!--versetest
 vector3:=struct{X:float, Y:float, Z:float}
 -->
-<!-- 13 -->
+<!-- 20 -->
 ```verse
 var Points:int = 0
 set Points = 100
@@ -412,7 +519,7 @@ The square bracket operator is used for multiple purposes in Verse:
 <!--versetest
 Damage(Base:int, ?Bonus:int = 0)<computes><decides>:int = Base + Bonus
 -->
-<!-- 14 -->
+<!-- 21 -->
 ```verse
 # Array indexing (failable)
 Scores := array{10, 20, 30}
@@ -437,7 +544,7 @@ Damage[10, ?Bonus := 5] = 15   # named argument
 The dot operator accesses fields and methods of objects:
 
 <!--versetest-->
-<!-- 15 -->
+<!-- 22 -->
 ```verse
 weapon := class<computes>{Damage:float = 25.0}
 player := class<computes>{Weapon:weapon = weapon{}, GetName()<computes>:string = "Hero"}
@@ -452,7 +559,7 @@ Player.Weapon.Damage = 25.0  # member access chains left to right
 The range operator creates ranges for iteration:
 
 <!--versetest-->
-<!-- 16 -->
+<!-- 23 -->
 ```verse
 # Ranges are inclusive at both ends
 Indices := for (I := 0..4) { I }
@@ -464,7 +571,7 @@ Indices = array{0, 1, 2, 3, 4}
 Verse provides multiple syntaxes for constructing objects. All of the following are equivalent:
 
 <!--versetest-->
-<!-- 17 -->
+<!-- 24 -->
 ```verse
 point := struct{X:int = 0, Y:int = 0}
 
@@ -499,7 +606,7 @@ Point5 = point{X := 10, Y := 0}
 Round braces when used with a single argument after a tuple expression, accesses tuple elements:
 
 <!--versetest-->
-<!-- 18 -->
+<!-- 25 -->
 ```verse
 MyTuple := (10, 20, 30)
 MyTuple(0) = 10
@@ -511,7 +618,7 @@ MyTuple(2) = 30
 Verse has limited implicit type conversion. Most conversions must be explicit:
 
 <!--versetest-->
-<!-- 19 -->
+<!-- 26 -->
 ```verse
 # No implicit int to float conversion
 Count:int = 42
@@ -529,7 +636,7 @@ Message = "Score: 100"
 When operators work with mixed types, specific rules apply:
 
 <!--versetest-->
-<!-- 20 -->
+<!-- 27 -->
 ```verse
 # int and float mix under *, and the result is a float
 5 * 2.0 = 10.0

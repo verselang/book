@@ -391,6 +391,22 @@ Inverts every bit of `Val`. On two's-complement numbers that is the same as
 no leading-bit cutoff to worry about.
 
 <!-- no documentation in the engine source -->
+## BitShiftLeft
+
+Shifts the bits of `Lhs` left by `Rhs` places, filling with zeros. That is the
+same as multiplying by 2 to the power `Rhs`, for negative values too, so
+`BitShiftLeft[-5, 2]` is `-20`. Because `int` has no fixed width the result
+grows rather than wrapping around. Fails if `Rhs` is negative.
+
+<!-- no documentation in the engine source -->
+## BitShiftRight
+
+Shifts the bits of `Lhs` right by `Rhs` places, dropping the bits shifted out.
+That is the same as dividing by 2 to the power `Rhs` and rounding toward
+negative infinity, so `BitShiftRight[-97, 5]` is `-4`, not `-3`. Shifting past
+every bit leaves only the sign: `0` or `-1`. Fails if `Rhs` is negative.
+
+<!-- no documentation in the engine source -->
 ## operator'>'(int,int)
 
 Succeeds when `Lhs` is greater than `Rhs`, and produces `Lhs` when it does.

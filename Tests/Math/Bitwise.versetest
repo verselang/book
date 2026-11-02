@@ -123,3 +123,156 @@ assert_semantic_error(3506, 3506, 3506, 3506):
             B:int = BitOr(12, 10)
             C:int = BitXor(12, 10)
             D:int = BitNot(12)
+
+# BitShiftLeft / BitShiftRight
+assert { BitShiftLeft[1, 0] = 1 }
+assert { BitShiftLeft[1, 10] = 1024 }
+assert { BitShiftLeft[3, 5] = 96 }
+assert { BitShiftLeft[0, 63] = 0 }
+assert { BitShiftLeft[1, 62] = 0x4000000000000000 }
+assert { BitShiftLeft[12345, 8] = 12345 * 256 }
+assert { BitShiftRight[1024, 10] = 1 }
+assert { BitShiftRight[96, 5] = 3 }
+assert { BitShiftRight[1, 1] = 0 }
+assert { BitShiftRight[12345, 3] = 1543 }
+assert { BitShiftRight[0x7FFFFFFFFFFFFFFF, 62] = 1 }
+
+# Arithmetic (flooring) right shift
+assert { BitShiftRight[-1, 1] = -1 }
+assert { BitShiftRight[-96, 5] = -3 }
+assert { BitShiftRight[-97, 5] = -4 }
+assert { BitShiftRight[-12345, 3] = -1544 }
+assert { BitShiftRight[-0x8000000000000000, 63] = -1 }
+
+# Sign fill
+assert { BitShiftRight[12345, 1000] = 0 }
+assert { BitShiftRight[-12345, 1000] = -1 }
+assert { BitShiftRight[0, 1000000000] = 0 }
+assert { BitShiftRight[5, 0x7FFFFFFFFFFFFFFF] = 0 }
+assert { BitShiftLeft[0, 1000000000] = 0 }
+
+# int64 boundaries
+assert { BitShiftLeft[0x3FFFFFFFFFFFFFFF, 1] = 0x7FFFFFFFFFFFFFFE }
+assert { BitShiftLeft[0x80000000, 31] = 0x4000000000000000 }
+
+# Negative values multiply by a power of two (two's complement)
+assert { BitShiftLeft[-5, 2] = -20 }
+assert { BitShiftLeft[-1, 0] = -1 }
+assert { BitShiftLeft[-1, 63] = -0x8000000000000000 }
+assert { BitShiftLeft[-0x4000000000000000, 1] = -0x8000000000000000 }
+assert { BitShiftRight[BitShiftLeft[-12345, 8], 8] = -12345 }
+
+# Negative counts fail for BitShiftLeft
+assert { not BitShiftLeft[5, -2] }
+assert { not BitShiftLeft[0, -1] }
+assert { not BitShiftLeft[5, -0x8000000000000000] }
+assert { (BitShiftLeft[5, -2] or 7) = 7 }
+
+# Negative counts fail for BitShiftRight
+assert { not BitShiftRight[5, -2] }
+assert { not BitShiftRight[2, -5] }
+assert { not BitShiftRight[5, -1] }
+assert { not BitShiftRight[0, -1] }
+assert { not BitShiftRight[-5, -2] }
+assert { not BitShiftRight[-1, -1] }
+assert { not BitShiftRight[5, -63] }
+assert { not BitShiftRight[5, -64] }
+assert { not BitShiftRight[5, -0x80000000] }
+assert { not BitShiftRight[5, -0x80000001] }
+assert { not BitShiftRight[0x7FFFFFFFFFFFFFFF, -1] }
+assert { not BitShiftRight[-0x8000000000000000, -1] }
+assert { not BitShiftRight[5, -0x8000000000000000] }
+assert { (BitShiftRight[5, -2] or 7) = 7 }
+
+# With the other bitwise ops
+assert { BitShiftRight[BitNot(0), 1] = -1 }
+assert { BitAnd(BitShiftLeft[1, 10], BitShiftLeft[1, 10]) = 1024 }
+assert { BitXor(BitShiftLeft[1, 10], BitShiftLeft[1, 10]) = 0 }
+
+# int64 overflow is a runtime error in the BP VM
+bp_vm_only{
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[1, 63]}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[1, 64]}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[0x7FFFFFFFFFFFFFFF, 1]}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[0x4000000000000000, 1]}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[5, 0x7FFFFFFFFFFFFFFF]}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[-0x8000000000000000, 1]}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[-2, 63]}
+}
+
+verse_vm_only{
+assert{BitShiftLeft[1, 63] = 0x7FFFFFFFFFFFFFFF + 1}
+assert{BitShiftLeft[1, 64] = (0x7FFFFFFFFFFFFFFF + 1) * 2}
+assert{BitShiftLeft[0x7FFFFFFFFFFFFFFF, 1] = 0x7FFFFFFFFFFFFFFF * 2}
+assert{BitShiftLeft[0x4000000000000000, 1] = 0x7FFFFFFFFFFFFFFF + 1}
+assert{BitShiftRight[BitShiftLeft[1, 200], 200] = 1}
+assert{BitShiftLeft[-0x8000000000000000, 1] = -0x8000000000000000 * 2}
+assert{BitShiftLeft[-2, 63] = -0x8000000000000000 * 2}
+}
+
+# MaxLengthBits boundary
+verse_vm_only{
+assert{BitShiftRight[BitShiftLeft[1, 1048575], 1048575] = 1}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[1, 1048576]}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[1, 1048577]}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[5, 0x7FFFFFFFFFFFFFFF]}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[-1, 1048576]}
+assert{BitShiftRight[BitShiftLeft[-1, 1048575], 1048575] = -1}
+assert{BitShiftRight[BitShiftLeft[Pow2_64, 1048480], 1048480] = Pow2_64}
+assert{BitShiftRight[BitShiftLeft[0x10000000000, 1048512], 1048512] = 0x10000000000}
+assert{BitShiftRight[-BitShiftLeft[1, 1048575], 1048575] = -1}
+assert{BitShiftRight[-BitShiftLeft[1, 1048575], 1] = -BitShiftLeft[1, 1048574]}
+}
+
+# Multi-digit (beyond 2^64) - exercises the VHeapInt digit shifts
+verse_vm_only{
+assert{BitShiftLeft[Pow2_64, 64] = Pow2_64 * Pow2_64}
+assert{BitShiftLeft[-Pow2_64, 3] = -Pow2_64 * 8}
+assert{BitShiftRight[Pow2_64, 64] = 1}
+assert{BitShiftRight[-Pow2_64, 64] = -1}
+assert{BitShiftRight[-Pow2_64 - 1, 64] = -2}
+assert{BitShiftRight[BitShiftLeft[Pow2_64, 64], 64] = Pow2_64}
+assert{BitShiftRight[Pow2_64, 1000000] = 0}
+assert{BitShiftRight[-Pow2_64, 1000000] = -1}
+assert{BitShiftRight[1 - Pow2_64 * Pow2_64, 64] = -Pow2_64}
+assert{BitShiftRight[1 - Pow2_64 * Pow2_64, 1] = -BitShiftLeft[1, 127]}
+}
+
+# Counts beyond int64
+verse_vm_only{
+assert{BitShiftLeft[0, Pow2_64] = 0}
+assert{BitShiftRight[12345, Pow2_64] = 0}
+assert{BitShiftRight[-12345, Pow2_64] = -1}
+assert{BitShiftRight[Pow2_64, Pow2_64] = 0}
+assert_runtime_error("MathIntrinsicCallFailure"){BitShiftLeft[1, Pow2_64]}
+assert{not BitShiftLeft[0, -Pow2_64]}
+assert{not BitShiftRight[1, -Pow2_64]}
+}
+
+# Negative counts fail for BitShiftRight on heap values
+verse_vm_only{
+assert{not BitShiftRight[Pow2_64, -2]}
+assert{not BitShiftRight[-Pow2_64, -2]}
+assert{not BitShiftRight[Pow2_64, -Pow2_64]}
+assert{not BitShiftRight[5, -1048577]}
+}
+
+
+# NaN / float is a type error
+assert_semantic_error(3509){f()<decides>:void=BitShiftLeft[NaN, 1]}
+assert_semantic_error(3509){f()<decides>:void=BitShiftLeft[1, NaN]}
+assert_semantic_error(3509){f()<decides>:void=BitShiftRight[NaN, 1]}
+assert_semantic_error(3509){f()<decides>:void=BitShiftRight[1, NaN]}
+
+# @available: first available at FN 44.00 (MinUploadedAtFNVersion 4400)
+assert_valid:
+    vpackage(P0, /APath, ?Scope:=InternalUser, ?UploadedAtFNVersion:=4400):
+        snippet:
+            F()<decides>:int = BitShiftLeft[12, 2]
+            G()<decides>:int = BitShiftRight[12, 2]
+
+assert_semantic_error(3506, 3506):
+    vpackage(P0, /APath, ?Scope:=InternalUser, ?UploadedAtFNVersion:=4399):
+        snippet:
+            F()<decides>:int = BitShiftLeft[12, 2]
+            G()<decides>:int = BitShiftRight[12, 2]
