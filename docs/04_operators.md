@@ -645,3 +645,202 @@ Result:float = 5 * 2.0
 # but they do not mix under + or -
 # 5 + 2.0  # Error: no operator'+' overload takes (int, float)
 ```
+
+## Operator Overloading
+
+Operators are functions, and each one has a name. The infix `A + B` calls
+`operator'+'(A, B)`, and the prefix `-A` calls `prefix'-'(A)`. Defining a
+function with one of these names for your own type gives the operator a
+meaning for that type:
+
+<!--versetest-->
+<!-- 28 -->
+```verse
+vec2 := struct{X:int, Y:int}
+
+operator'+'(A:vec2, B:vec2):vec2 = vec2{X := A.X + B.X, Y := A.Y + B.Y}
+operator'-'(A:vec2, B:vec2):vec2 = vec2{X := A.X - B.X, Y := A.Y - B.Y}
+operator'*'(A:vec2, S:int):vec2 = vec2{X := A.X * S, Y := A.Y * S}
+operator'*'(S:int, A:vec2):vec2 = vec2{X := S * A.X, Y := S * A.Y}
+prefix'-'(A:vec2):vec2 = vec2{X := -A.X, Y := -A.Y}
+
+V := vec2{X := 1, Y := 2} + vec2{X := 3, Y := 4}
+V = vec2{X := 4, Y := 6}
+(2 * V) = vec2{X := 8, Y := 12}
+(V * 2) = (2 * V)
+(-V) = vec2{X := -4, Y := -6}
+
+# An overload is an ordinary function and can be called by name
+operator'+'(V, V) = vec2{X := 8, Y := 12}
+```
+
+The compiler chooses among overloads by the types of the operands, exactly
+as it does for any other overloaded function. That is why `vec2 * int` and
+`int * vec2` need separate definitions: neither one is derived from the
+other. A parameter of class type also accepts subclasses, so an overload
+written for a base class applies to every class derived from it.
+
+Overloading changes what an operator does, not how it parses. An
+overloaded `*` still binds more tightly than `+`, and `-V + W * 2` groups
+the same way for `vec2` as it does for numbers.
+
+### Which Operators Can Be Overloaded
+
+Only five operators can be overloaded: the binary arithmetic operators `+`,
+`-`, `*` and `/`, and prefix `-`. Every other operator name is reserved.
+Defining one is error 3514 ("Cannot use reserved identifier"), and calling
+one by name is error 3637. The reserved names include:
+
+- the comparisons `operator'='`, `operator'<>'`, `operator'<'`,
+  `operator'<='`, `operator'>'` and `operator'>='`
+- the compound assignments `operator'+='`, `operator'-='`, `operator'*='`
+  and `operator'/='`
+- the logical operators `operator'and'`, `operator'or'` and `prefix'not'`
+- prefix `+`, the query operator `postfix'?'`, and indexing `operator'()'`
+- invented operators such as `operator'dot'` or `operator'^'`
+
+<!--versetest
+assert_semantic_error(3514):
+    t := class{}
+    operator'<'(A:t, B:t)<transacts><decides>:void = {}
+assert_semantic_error(3514):
+    t := class{}
+    operator'+='(A:t, B:t):void = {}
+assert_semantic_error(3514):
+    t := class{}
+    operator'and'(A:t, B:t):t = A
+assert_semantic_error(3514):
+    t := class{}
+    prefix'+'(A:t):t = A
+assert_semantic_error(3514):
+    t := class{}
+    operator'dot'(A:t, B:t):int = 0
+assert_semantic_error(3518, 3532):
+    operator'+'(A:int, B:int):int = 42
+    F():int = 1 + 1
+-->
+<!-- 29 -->
+```verse
+t := class{}
+
+# operator'<'(A:t, B:t)<transacts><decides>:void = {}   # Error 3514
+# operator'+='(A:t, B:t):void = {}                       # Error 3514
+# operator'and'(A:t, B:t):t = A                          # Error 3514
+# prefix'+'(A:t):t = A                                   # Error 3514
+# operator'dot'(A:t, B:t):int = 0                        # Error 3514
+
+# Built-in operand types cannot be given a new meaning either
+# operator'+'(A:int, B:int):int = 42                     # Error 3532
+```
+
+The last line shows that an overload cannot replace a built-in one. A
+definition of `operator'+'` for two `int`s is ambiguous with the
+intrinsic, and the compiler rejects it.
+
+Equality is not overloadable, but it does not need to be. A struct whose
+fields are all comparable is itself comparable, and `=` compares it field
+by field, which is what the asserts above rely on. The Types chapter
+describes which types are comparable.
+
+### Compound Assignment
+
+Since `operator'+='` cannot be defined, `set X += Y` does not work for a
+type that only overloads `+`. The compound form is not rewritten into
+`set X = X + Y`; the compiler looks for an `operator'+='` that takes a
+reference, finds none, and reports error 3509. Write the assignment out
+in full instead:
+
+<!--versetest
+assert_semantic_error(3509):
+    money := struct{Cents:int}
+    operator'+'(A:money, B:money):money = money{Cents := A.Cents + B.Cents}
+    F():void =
+        var Total:money = money{Cents := 0}
+        set Total += money{Cents := 5}
+-->
+<!-- 30 -->
+```verse
+money := struct{Cents:int}
+operator'+'(A:money, B:money):money = money{Cents := A.Cents + B.Cents}
+
+var Total:money = money{Cents := 100}
+# set Total += money{Cents := 50}        # Error 3509: no operator'+='
+set Total = Total + money{Cents := 50}   # OK
+Total = money{Cents := 150}
+```
+
+### Effects
+
+An overloaded operator carries the effects of the function that implements
+it. An overload can be failable, just like the built-in integer division,
+and then every use of it must sit in a failure context:
+
+<!--versetest
+assert_semantic_error(3512):
+    ratio := struct{N:int, D:int}
+    operator'/'(A:ratio, K:int)<transacts><decides>:ratio =
+        K <> 0
+        ratio{N := A.N, D := A.D * K}
+    F(R:ratio):ratio = R / 2
+-->
+<!-- 31 -->
+```verse
+ratio := struct{N:int, D:int}
+
+operator'/'(A:ratio, K:int)<transacts><decides>:ratio =
+    K <> 0
+    ratio{N := A.N, D := A.D * K}
+
+Half := ratio{N := 1, D := 1} / 2      # in a failure context: OK
+Half = ratio{N := 1, D := 2}
+not (ratio{N := 1, D := 1} / 0)        # fails, so `not` succeeds
+
+# F(R:ratio):ratio = R / 2   # Error 3512: this division can fail
+```
+
+Because an overloaded operator is a function call, it is subject to the
+rules for calls. In particular, a data-member initializer may not call
+anything, so a field default can use the built-in `1 + 2` but not an
+overloaded `+` (error 3582).
+
+### Visibility
+
+An overload is found the same way as any other function: it must be
+visible where the operator is used. An overload declared `<internal>` in
+one module is ignored in another, even if the operand types are public,
+and `A + B` there fails with error 3509. A library that defines a public
+type with operators should mark the overloads `<public>` as well.
+
+### Overloads Must Be Free Functions
+
+Only functions declared outside a class are used for operator syntax. A
+method named `operator'+'` inside a class compiles, as does an extension
+method with that name, but neither is ever chosen for `A + B`. They can be
+called only with dot syntax, like any other method:
+
+<!--versetest
+assert_semantic_error(3509):
+    point := class{X:int; operator'+'(B:point):int = X + B.X}
+    F():int = point{X := 1} + point{X := 2}
+assert_semantic_error(3509):
+    point := class{X:int}
+    (A:point).operator'+'(B:point):int = A.X + B.X
+    F():int = point{X := 1} + point{X := 2}
+-->
+<!-- 32 -->
+```verse
+point := class:
+    X:int
+    operator'+'(B:point):int = X + B.X
+
+# point{X := 1} + point{X := 2}          # Error 3509: no matching operator'+'
+point{X := 1}.operator'+'(point{X := 2}) = 3   # OK: an ordinary method call
+```
+
+The compiler also does not check that an operator overload has the right
+number of parameters. A three-parameter `operator'+'` compiles and can be
+called by name, but no infix expression can ever reach it.
+
+Both behaviors are surprising, and they may change. For now, define
+operators as free functions with one parameter for a prefix operator and
+two for an infix operator.
