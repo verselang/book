@@ -88,7 +88,7 @@ nav:
   - Functions: 06_functions.md
   - Control Flow: 07_control.md
   - Failure: 08_failure.md
-  - Structs & Enums: 09_structs_enums.md
+  - Structs, Enums & Unions: 09_structs_enums.md
   - Classes & Interfaces: 10_classes_interfaces.md
   - Type System: 11_types.md
   - Access Specifiers: 12_access.md

@@ -32,7 +32,7 @@ Verse has three core principles:
 - [Functions](06_functions.md) - Open-world vs closed-world functions, parameters, and return values
 - [Control Flow](07_control.md) - If/else, loops, code blocks, and comments
 - [Failure System](08_failure.md) - First-class failure, failable expressions, and speculative execution
-- [Structs & Enums](09_structs_enums.md) - Value types and fixed sets of named values
+- [Structs, Enums & Unions](09_structs_enums.md) - Value types, fixed sets of named values, and named variants that carry data
 - [Classes & Interfaces](10_classes_interfaces.md) - Object-oriented programming with inheritance and contracts
 - [Type System](11_types.md) - Types as functions and type checking
 - [Access Specifiers](12_access.md) - Public, private, and protected visibility
