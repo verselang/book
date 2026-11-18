@@ -1754,7 +1754,7 @@ assert_semantic_error(3502):
 
 ### Union Evolution
 
-Once a union is published, its definition becomes a contract with code that depends on it. The rules follow those for enums (see [Code Evolution](18_evolution.md#enums)), with one addition for payloads: an open union may change a variant's payload type, and a closed union may not:
+Once a union is published, its definition becomes a contract with code that depends on it. The rules follow those for enums (see [Code Evolution](18_evolution.md#enums)): a closed union's variants are fixed, in number and in order, while an open union may gain variants and reorder them:
 
 | Change | Closed union | Open union |
 |--------|--------------|------------|
@@ -1762,9 +1762,11 @@ Once a union is published, its definition becomes a contract with code that depe
 | Remove a variant | ✗ Not allowed | ✗ Not allowed |
 | Rename a variant | ✗ Not allowed (a removal plus an addition) | ✗ Not allowed (a removal plus an addition) |
 | Reorder variants | ✗ Not allowed | ✓ Allowed |
-| Change a variant's payload type | ✗ Not allowed | ✓ Allowed |
+| Change a variant's payload type | ✗ Not allowed | ⚠ Currently accepted by the compiler - avoid |
 | Change `<closed>` to `<open>` | ✗ Not allowed | — |
 | Change `<open>` to `<closed>` | — | ✓ Allowed |
+
+The compiler currently accepts a changed payload type on an open union, but the change breaks existing code all the same: a `case` arm such as `A(X : int)` no longer matches once `A` carries a `string`, and persisted values of the old type no longer fit. Treat payload types as fixed for open unions too.
 
 Compatibility checking does not yet handle parametric unions (even an unchanged parametric union is currently reported as incompatible), so the table describes non-parametric unions only.
 

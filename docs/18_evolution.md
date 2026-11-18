@@ -59,9 +59,23 @@ The rules follow a general principle: changes that make types more specific (nar
 
 - **Cannot add or remove enumerators from closed enums.** Closed enums (the default) commit to a fixed set of values forever. Code can exhaustively match all cases without a wildcard, so adding cases would break such matches.
 - **Closed enums cannot become open.** An enum published as closed cannot become open. This affects whether exhaustive matching is possible.
-- **Cannot reorder enumerators.** The order of enum values is part of the public contract.
+- **Cannot reorder the enumerators of a closed enum.** The order of a closed enum's values is part of the public contract. Open enums may be reordered.
 - **Cannot rename enumerators.** Each enumerator name is a permanent identifier.
-- **Open enums can add new enumerators.** This is the sole evolution path for enums—open enums trade the guarantee of exhaustive matching for the ability to grow.
+- **Open enums can add new enumerators.** This is the main evolution path for enums—open enums trade the guarantee of exhaustive matching for the ability to grow.
+
+### Unions
+
+!!! note "Unreleased Feature"
+    Unions have not yet been released and are not publicly available.
+
+Unions follow the rules for enums, applied to variants. The full table, including the rules for payload types, is in [Union Evolution](09_structs_enums.md#union-evolution).
+
+- **Cannot add variants to closed unions.** As with closed enums, code can match every variant without a wildcard, so adding one would break such matches.
+- **Cannot remove or rename variants of any union.** Each variant name is a permanent identifier, and renaming is a removal plus an addition.
+- **Cannot reorder the variants of a closed union.** Open unions may be reordered.
+- **Cannot change a closed union's payload types.** Changing an open union's payload type is currently accepted by the compiler, but it breaks existing `case` arms and persisted values, so avoid it.
+- **Closed unions cannot become open.** Open unions can become closed.
+- **Open unions can add new variants.** Open unions trade exhaustive matching for the ability to grow, so every `case` over them needs a fallback.
 
 ### Classes and Inheritance
 
