@@ -43,7 +43,7 @@ IF NOT DEFINED Key (
 
 REM This will give the actual path for Python
 IF DEFINED Key (
-  FOR /f "tokens=2*" %%a IN ('REG QUERY "!Key!" /ve 2^>nul') DO SET "PY_PATH=%%bpython.exe"
+  FOR /f "tokens=2*" %%a IN ('REG QUERY "!Key!" /v ExecutablePath 2^>nul') DO SET "PY_PATH=%%b"
 )
 
 IF NOT DEFINED PY_PATH (
