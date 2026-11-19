@@ -63,15 +63,11 @@ const RenderVerseCodeBlocks = (ClassName = "code.language-verse") => {
 
     console.debug(`[VerseTheme.RenderVerseCodeBlocks]: Rendering ${VerseCodeBlocks.length} blocks w/ class ${ClassName}`);
 
-    /* Disables rendering, speed up loading */
-    const PreviousDisplay = document.body.style.display;
-    document.body.style.display = `none`;
-
     console.time(`[VerseTheme.RenderVerseCodeBlocks]`);
 
     VerseCodeBlocks.forEach((Block) => {
         const Parent = Block.parentElement;
-        const CodeContent = Block.innerText;
+        const CodeContent = Block.textContent;
 
         const HTML = Cache.VerseHighlighter.codeToHtml(CodeContent, {
             lang: Cache.Grammar.name,
@@ -90,8 +86,6 @@ const RenderVerseCodeBlocks = (ClassName = "code.language-verse") => {
 
         Parent.replaceWith(NewPre);
     });
-
-    document.body.style.display = PreviousDisplay;
 
     console.timeEnd(`[VerseTheme.RenderVerseCodeBlocks]`);
 };
