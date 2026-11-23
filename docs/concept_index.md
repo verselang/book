@@ -24,11 +24,12 @@ This index provides quick access to key concepts, language features, and importa
 - **struct** - value types: [Structs - Structs](09_structs_enums.md#structs), [Type System](11_types.md)
 - **interface** - contracts: [Classes - Interfaces](10_classes_interfaces.md#interfaces), [Type System](11_types.md)
 - **enum** - named values: [Overview](00_overview.md), [Enums - Enums](09_structs_enums.md#enums)
+- **union** - named variants that carry data: [Unions - Unions](09_structs_enums.md#unions)
 
 ### Type Features
 - **subtyping** - type relationships: [Type System - Understanding Subtyping](11_types.md#understanding-subtyping)
 - **comparable** - equality testing: [Type System](11_types.md)
-- **parametric types** - generics: [Classes - Parametric Classes](10_classes_interfaces.md#parametric-classes), [Structs - Parametric Structs](09_structs_enums.md#parametric-structs), [Type System](11_types.md)
+- **parametric types** - generics: [Classes - Parametric Classes](10_classes_interfaces.md#parametric-classes), [Structs - Parametric Structs](09_structs_enums.md#parametric-structs), [Unions - Parametric Unions](09_structs_enums.md#parametric-unions), [Type System](11_types.md)
 - **type{}** - type expressions: [Expressions](01_expressions.md), [Primitives - Type type](02_primitives.md#type-type), [Type System](11_types.md)
 - **where clauses** - type constraints: [Overview](00_overview.md), [Functions](06_functions.md), [Classes - Advanced Type Constraints](10_classes_interfaces.md#advanced-type-constraints), [Type System](11_types.md)
 
@@ -76,7 +77,7 @@ This index provides quick access to key concepts, language features, and importa
 
 ### Basic Control
 - **if/then/else** - conditional execution: [Overview](00_overview.md), [Expressions](01_expressions.md), [Control Flow](07_control.md), [Failure](08_failure.md)
-- **case** - pattern matching: [Overview](00_overview.md), [Enums - Using Enums](09_structs_enums.md#using-enums), [Control Flow](07_control.md)
+- **case** - pattern matching: [Overview](00_overview.md), [Enums - Using Enums](09_structs_enums.md#using-enums), [Unions - Pattern Matching](09_structs_enums.md#pattern-matching), [Control Flow](07_control.md)
 - **first** - first matching iteration: [Control Flow](07_control.md), [Failure](08_failure.md)
 - **for** - iteration: [Overview](00_overview.md), [Control Flow](07_control.md), [Failure](08_failure.md)
 - **loop** - infinite loops: [Control Flow](07_control.md), [Failure](08_failure.md), [Concurrency](14_concurrency.md)
@@ -145,12 +146,12 @@ This index provides quick access to key concepts, language features, and importa
 - **`<final_super>`** - terminal inheritance: [Classes - Final](10_classes_interfaces.md#final), [Access Specifiers](12_access.md)
 - **`<final_super_base>`** - inheritance root: [Classes - Final](10_classes_interfaces.md#final)
 - **`<castable>`** - runtime type checking: [Classes - Castable](10_classes_interfaces.md#castable), [Access Specifiers](12_access.md), [Code Evolution](18_evolution.md)
-- **`<persistable>`** - saveable data: [Overview](00_overview.md), [Classes - Persistable](10_classes_interfaces.md#persistable), [Structs - Persistable Structs](09_structs_enums.md#persistable-structs), [Persistable Types](17_persistable.md)
+- **`<persistable>`** - saveable data: [Overview](00_overview.md), [Classes - Persistable](10_classes_interfaces.md#persistable), [Structs - Persistable Structs](09_structs_enums.md#persistable-structs), [Unions - Persistable Unions](09_structs_enums.md#persistable-unions), [Persistable Types](17_persistable.md)
 - **`<constructor>`** - factory methods: [Classes - Constructor Functions](10_classes_interfaces.md#constructor-functions)
 
-### Enum Specifiers
-- **`<open>`** - extensible enums: [Enums - Open vs Closed Enums](09_structs_enums.md#open-vs-closed-enums), [Access Specifiers](12_access.md), [Code Evolution](18_evolution.md)
-- **`<closed>`** - fixed enums: [Enums - Open vs Closed Enums](09_structs_enums.md#open-vs-closed-enums), [Access Specifiers](12_access.md), [Code Evolution](18_evolution.md)
+### Enum and Union Specifiers
+- **`<open>`** - extensible enums and unions: [Enums - Open vs Closed Enums](09_structs_enums.md#open-vs-closed-enums), [Unions - Open vs Closed Unions](09_structs_enums.md#open-vs-closed-unions), [Access Specifiers](12_access.md), [Code Evolution](18_evolution.md)
+- **`<closed>`** - fixed enums and unions: [Enums - Open vs Closed Enums](09_structs_enums.md#open-vs-closed-enums), [Unions - Open vs Closed Unions](09_structs_enums.md#open-vs-closed-unions), [Access Specifiers](12_access.md), [Code Evolution](18_evolution.md)
 
 ## Access Control
 

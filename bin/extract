@@ -269,11 +269,11 @@ function separateTypeDefinitions(snippetLines) {
     const trimmed = line.trim();
 
     // Check if this line starts a type definition at base indentation
-    // Pattern: identifier := (class|struct|module|interface|enum):
+    // Pattern: identifier := (class|struct|module|interface|enum|union):
     // The optional parameter list covers parametric definitions such as
     // `container(t:type) := class:`, which must be hoisted to module scope too
     // (class definitions are not allowed inside an assert block).
-    const isTypeDef = /^[a-zA-Z_][a-zA-Z0-9_]*\s*(\([^()]*\))?\s*:=\s*(class|struct|module|interface|enum)/.test(trimmed);
+    const isTypeDef = /^[a-zA-Z_][a-zA-Z0-9_]*\s*(\([^()]*\))?\s*:=\s*(class|struct|module|interface|enum|union)/.test(trimmed);
 
     // A type alias such as `ArrayType := []int` is also a type definition and
     // so also module scope only. Only right-hand sides that cannot be anything
